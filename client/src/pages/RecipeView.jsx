@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { api } from '../api.js';
 import { useAuth } from '../auth.jsx';
+import { scaleIngredients } from '../scale.js';
 import BakeLog from '../components/BakeLog.jsx';
 import RecipeSocial from '../components/RecipeSocial.jsx';
 
@@ -12,6 +13,7 @@ export default function RecipeView() {
   const [recipe, setRecipe] = useState(null);
   const [isOwner, setIsOwner] = useState(false);
   const [tab, setTab] = useState('recipe');
+  const [scale, setScale] = useState(1);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -103,9 +105,29 @@ export default function RecipeView() {
             <div className="tags">{recipe.tags.map((t) => <span key={t} className="tag">#{t}</span>)}</div>
           )}
 
-          <h2>Ingredients</h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+            <h2 style={{ marginRight: 'auto' }}>Ingredients</h2>
+            <span className="muted no-print" style={{ fontSize: '0.85rem' }}>Scale:</span>
+            <select
+              className="no-print"
+              value={scale}
+              onChange={(e) => setScale(Number(e.target.value))}
+              style={{ width: 'auto' }}
+            >
+              <option value={0.5}>½×</option>
+              <option value={1}>1×</option>
+              <option value={2}>2×</option>
+              <option value={3}>3×</option>
+              <option value={4}>4×</option>
+            </select>
+            {scale !== 1 && recipe.servings ? (
+              <span className="muted" style={{ fontSize: '0.85rem' }}>
+                (≈ {Math.round(recipe.servings * scale)} servings)
+              </span>
+            ) : null}
+          </div>
           <ul className="ingredients">
-            {recipe.ingredients.map((ing, i) => <li key={i}>{ing}</li>)}
+            {scaleIngredients(recipe.ingredients, scale).map((ing, i) => <li key={i}>{ing}</li>)}
           </ul>
 
           <h2>Steps</h2>
