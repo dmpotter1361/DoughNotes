@@ -56,6 +56,7 @@ export default function RecipeView() {
         </div>
         {isOwner && (
           <div className="no-print" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <button onClick={() => navigate(`/recipes/${id}/cook`)}>👨‍🍳 Cook</button>
             <button className="secondary" onClick={() => navigate(`/recipes/${id}/edit`)}>Edit</button>
             <button className="secondary" onClick={() => window.print()}>Print</button>
             {user?.drive_linked && <button className="secondary" onClick={saveToDrive}>Save PDF to Drive</button>}
@@ -64,7 +65,10 @@ export default function RecipeView() {
           </div>
         )}
         {!isOwner && (
-          <button className="secondary no-print" onClick={() => window.print()}>Print</button>
+          <div className="no-print" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <button onClick={() => navigate(`/recipes/${id}/cook`)}>👨‍🍳 Cook</button>
+            <button className="secondary" onClick={() => window.print()}>Print</button>
+          </div>
         )}
       </div>
 

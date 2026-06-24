@@ -10,6 +10,7 @@ import RecipeView from './pages/RecipeView.jsx';
 import Admin from './pages/Admin.jsx';
 import Account from './pages/Account.jsx';
 import Import from './pages/Import.jsx';
+import CookMode from './pages/CookMode.jsx';
 
 // Gate a route behind login (optionally admin-only).
 function Protected({ children, adminOnly }) {
@@ -28,6 +29,7 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/recipes/:id" element={<RecipeView />} />
+        <Route path="/recipes/:id/cook" element={<CookMode />} />
 
         <Route path="/my" element={<Protected><MyRecipes /></Protected>} />
         <Route path="/new" element={<Protected><RecipeEditor /></Protected>} />
