@@ -179,6 +179,22 @@ th { color: var(--cocoa-soft); font-size: 0.85rem; text-transform: uppercase; le
 .pill.published { background: #e3efd2; color: #4a5d23; }
 .pill.private { background: #f0e3d2; color: #7a6450; }
 
+/* Import hub */
+.import-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+.import-option {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  transition: transform 0.1s, border-color 0.1s;
+}
+.import-option:hover { transform: translateY(-2px); border-color: var(--crust); }
+.import-option .icon { font-size: 2rem; line-height: 1; }
+.import-option p { margin: 0.2rem 0 0; font-size: 0.9rem; }
+
 /* Mobile polish */
 @media (max-width: 600px) {
   .nav {

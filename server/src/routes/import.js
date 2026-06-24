@@ -3,6 +3,7 @@ import multer from 'multer';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { createWorker } from 'tesseract.js';
+import { getDocumentProxy } from 'unpdf';
 import { requireAuth } from '../auth.js';
 import { DATA_DIR } from '../db.js';
 
@@ -84,24 +85,40 @@ function parseRecipe(text) {
 // Strip HTML tags / collapse whitespace from instruction text.
 const clean = (s) => String(s).replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
 
-// Pull every JSON-LD blob out of the page and find the Recipe node.
+// BFS a parsed JSON value (object/array, incl. @graph) for a schema.org Recipe node.
+function findRecipeInJson(value) {
+  const queue = Array.isArray(value) ? [...value] : [value];
+  while (queue.length) {
+    const node = queue.shift();
+    if (!node || typeof node !== 'object') continue;
+    if (Array.isArray(node['@graph'])) queue.push(...node['@graph']);
+    const type = node['@type'];
+    const isRecipe = type === 'Recipe' || (Array.isArray(type) && type.includes('Recipe'));
+    if (isRecipe) return node;
+  }
+  return null;
+}
+
+// Pull every JSON-LD blob out of an HTML page and find the Recipe node.
 function findRecipeNode(html) {
   const blocks = [...html.matchAll(/<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)];
-  const candidates = [];
   for (const m of blocks) {
     let data;
     try { data = JSON.parse(m[1].trim()); } catch { continue; }
-    const queue = Array.isArray(data) ? [...data] : [data];
-    while (queue.length) {
-      const node = queue.shift();
-      if (!node || typeof node !== 'object') continue;
-      if (Array.isArray(node['@graph'])) queue.push(...node['@graph']);
-      const type = node['@type'];
-      const isRecipe = type === 'Recipe' || (Array.isArray(type) && type.includes('Recipe'));
-      if (isRecipe) candidates.push(node);
-    }
+    const node = findRecipeInJson(data);
+    if (node) return node;
   }
-  return candidates[0] || null;
+  return null;
+}
+
+// Convert a schema.org Recipe node into our draft shape.
+function recipeNodeToDraft(node) {
+  return {
+    title: clean(node.name || ''),
+    ingredients: [].concat(node.recipeIngredient || node.ingredients || []).map(clean).filter(Boolean),
+    steps: parseInstructions(node.recipeInstructions),
+    rawText: '',
+  };
 }
 
 // Normalize recipeInstructions into a flat string[] of steps.
@@ -135,17 +152,7 @@ router.post('/url', requireAuth, async (req, res) => {
     if (!node) {
       return res.status(422).json({ error: "Couldn't find a recipe on that page. Try a different link or use the photo importer." });
     }
-    const ingredients = []
-      .concat(node.recipeIngredient || node.ingredients || [])
-      .map(clean)
-      .filter(Boolean);
-    const draft = {
-      title: clean(node.name || ''),
-      ingredients,
-      steps: parseInstructions(node.recipeInstructions),
-      rawText: '',
-    };
-    res.json({ draft });
+    res.json({ draft: recipeNodeToDraft(node) });
   } catch (e) {
     console.error('URL import error:', e.message);
     res.status(500).json({ error: 'Could not import from that URL' });
@@ -168,6 +175,84 @@ router.post('/ocr', requireAuth, (req, res) => {
       res.status(500).json({ error: 'Could not read the image. Try a clearer, well-lit photo.' });
     }
   });
+});
+
+// Extract text from a PDF while preserving line breaks — pdfjs text items carry an
+// end-of-line flag (and a y-position fallback), which the heuristic parser needs.
+async function extractPdfLines(buffer) {
+  const pdf = await getDocumentProxy(new Uint8Array(buffer));
+  const lines = [];
+  for (let p = 1; p <= pdf.numPages; p++) {
+    const page = await pdf.getPage(p);
+    const { items } = await page.getTextContent();
+    let line = '';
+    let lastY = null;
+    for (const item of items) {
+      const y = Math.round(item.transform?.[5] ?? 0);
+      if (lastY !== null && Math.abs(y - lastY) > 2 && line.trim()) {
+        lines.push(line.trim());
+        line = '';
+      }
+      line += item.str;
+      if (item.hasEOL) {
+        if (line.trim()) lines.push(line.trim());
+        line = '';
+      }
+      lastY = y;
+    }
+    if (line.trim()) lines.push(line.trim());
+  }
+  return lines.join('\n');
+}
+
+// POST /api/import/pdf — extract embedded text from a PDF, return a draft. Does NOT save.
+router.post('/pdf', requireAuth, (req, res) => {
+  upload.single('file')(req, res, async (err) => {
+    if (err) {
+      const msg = err.code === 'LIMIT_FILE_SIZE' ? 'PDF must be 25 MB or smaller' : err.message;
+      return res.status(400).json({ error: msg });
+    }
+    if (!req.file) return res.status(400).json({ error: 'No PDF uploaded' });
+    try {
+      const text = await extractPdfLines(req.file.buffer);
+      if (!text || text.trim().length < 20) {
+        return res.status(422).json({ error: 'This PDF has no readable text (it may be scanned). Try the photo importer instead.' });
+      }
+      res.json({ draft: parseRecipe(text) });
+    } catch (e) {
+      console.error('PDF import error:', e.message);
+      res.status(500).json({ error: 'Could not read that PDF' });
+    }
+  });
+});
+
+// POST /api/import/text — parse pasted text or an uploaded .txt's contents. Does NOT save.
+router.post('/text', requireAuth, (req, res) => {
+  const text = (req.body?.text ?? '').toString();
+  if (!text.trim()) return res.status(400).json({ error: 'No text provided' });
+  res.json({ draft: parseRecipe(text) });
+});
+
+// POST /api/import/json — schema.org/Recipe JSON or a direct {title,ingredients,steps}.
+router.post('/json', requireAuth, (req, res) => {
+  let data = req.body?.data;
+  if (data === undefined || data === null) return res.status(400).json({ error: 'No JSON provided' });
+  if (typeof data === 'string') {
+    try { data = JSON.parse(data); } catch { return res.status(400).json({ error: 'That file is not valid JSON' }); }
+  }
+  const node = findRecipeInJson(data);
+  if (node) return res.json({ draft: recipeNodeToDraft(node) });
+  if (data && typeof data === 'object' && (Array.isArray(data.ingredients) || Array.isArray(data.steps))) {
+    return res.json({
+      draft: {
+        title: clean(data.title || data.name || ''),
+        ingredients: (data.ingredients || []).map(clean).filter(Boolean),
+        steps: (data.steps || []).map((s) => clean(typeof s === 'string' ? s : (s.text || s.name || ''))).filter(Boolean),
+        rawText: '',
+      },
+    });
+  }
+  res.status(422).json({ error: "Couldn't find a recipe in that JSON file." });
 });
 
 export default router;

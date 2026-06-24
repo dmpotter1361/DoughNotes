@@ -21,7 +21,7 @@ export default function MyRecipes() {
       <div className="recipe-header">
         <h1>My Recipes</h1>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <Link to="/import" className="btn secondary">📷 Import from photo</Link>
+          <Link to="/import" className="btn secondary">📥 Import</Link>
           <Link to="/new" className="btn">+ New Recipe</Link>
         </div>
       </div>
