@@ -5,6 +5,7 @@ import { useAuth } from '../auth.jsx';
 import { scaleIngredients } from '../scale.js';
 import BakeLog from '../components/BakeLog.jsx';
 import RecipeSocial from '../components/RecipeSocial.jsx';
+import Collaborators from '../components/Collaborators.jsx';
 
 export default function RecipeView() {
   const { id } = useParams();
@@ -12,15 +13,25 @@ export default function RecipeView() {
   const { user } = useAuth();
   const [recipe, setRecipe] = useState(null);
   const [isOwner, setIsOwner] = useState(false);
+  const [canEdit, setCanEdit] = useState(false);
   const [tab, setTab] = useState('recipe');
   const [scale, setScale] = useState(1);
   const [error, setError] = useState('');
 
   useEffect(() => {
     api.get(`/recipes/${id}`)
-      .then(({ recipe, is_owner }) => { setRecipe(recipe); setIsOwner(is_owner); })
+      .then(({ recipe, is_owner, can_edit }) => { setRecipe(recipe); setIsOwner(is_owner); setCanEdit(can_edit); })
       .catch((e) => setError(e.message));
   }, [id]);
+
+  async function addToShoppingList() {
+    try {
+      const { added } = await api.post('/shopping/add', { recipe_ids: [Number(id)] });
+      alert(added > 0 ? `Added ${added} item${added === 1 ? '' : 's'} to your shopping list.` : 'Those ingredients are already on your list.');
+    } catch (e) {
+      alert(e.message);
+    }
+  }
 
   async function togglePublish() {
     const { recipe: updated } = await api.patch(`/recipes/${id}/publish`, { is_published: !recipe.is_published });
@@ -54,22 +65,15 @@ export default function RecipeView() {
           <h1>{recipe.title}</h1>
           <p className="muted">by {recipe.author}</p>
         </div>
-        {isOwner && (
-          <div className="no-print" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-            <button onClick={() => navigate(`/recipes/${id}/cook`)}>👨‍🍳 Cook</button>
-            <button className="secondary" onClick={() => navigate(`/recipes/${id}/edit`)}>Edit</button>
-            <button className="secondary" onClick={() => window.print()}>Print</button>
-            {user?.drive_linked && <button className="secondary" onClick={saveToDrive}>Save PDF to Drive</button>}
-            <button onClick={togglePublish}>{recipe.is_published ? 'Unpublish' : 'Publish'}</button>
-            <button className="danger" onClick={remove}>Delete</button>
-          </div>
-        )}
-        {!isOwner && (
-          <div className="no-print" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-            <button onClick={() => navigate(`/recipes/${id}/cook`)}>👨‍🍳 Cook</button>
-            <button className="secondary" onClick={() => window.print()}>Print</button>
-          </div>
-        )}
+        <div className="no-print" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <button onClick={() => navigate(`/recipes/${id}/cook`)}>👨‍🍳 Cook</button>
+          {user && <button className="secondary" onClick={addToShoppingList}>🛒 Add to list</button>}
+          <button className="secondary" onClick={() => window.print()}>Print</button>
+          {canEdit && <button className="secondary" onClick={() => navigate(`/recipes/${id}/edit`)}>Edit</button>}
+          {isOwner && user?.drive_linked && <button className="secondary" onClick={saveToDrive}>Save PDF to Drive</button>}
+          {isOwner && <button onClick={togglePublish}>{recipe.is_published ? 'Unpublish' : 'Publish'}</button>}
+          {isOwner && <button className="danger" onClick={remove}>Delete</button>}
+        </div>
       </div>
 
       {isOwner && (
@@ -78,6 +82,9 @@ export default function RecipeView() {
             {recipe.is_published ? 'Published to community' : 'Private'}
           </span>
         </p>
+      )}
+      {!isOwner && canEdit && (
+        <p><span className="pill published">Shared with you — you can edit</span></p>
       )}
 
       {isOwner && (
@@ -168,6 +175,8 @@ export default function RecipeView() {
       ) : (
         <BakeLog recipeId={id} />
       )}
+
+      {isOwner && tab === 'recipe' && <Collaborators recipeId={id} />}
 
       <p className="no-print" style={{ marginTop: '1.5rem' }}><Link to="/">← Back to browse</Link></p>
     </article>

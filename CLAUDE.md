@@ -40,7 +40,11 @@ No test suite yet; verify by running the API and exercising `/api/*`.
 - `server/src/db.js` — SQLite connection + schema (also exports `DATA_DIR`, `UPLOADS_DIR`)
 - `server/src/auth.js` — JWT sign/verify, `attachUser` / `requireAuth` / `requireAdmin`
 - `server/src/routes/` — `auth`, `recipes`, `images`, `bakes`, `collections`, `admin`,
-  `drive`, `import` (OCR)
+  `drive`, `import` (OCR + URL), `social` (ratings/comments), `shopping`, `planner`
+- **Co-creators**: `recipe_collaborators` table; `canEditRecipe(recipeId,userId)` in
+  `routes/recipes.js` (owner OR collaborator) gates content edits (PUT, cover, image
+  upload/patch/delete); publish/delete/manage-collaborators stay owner-only; bake log
+  owner-only. Share by email lookup; `GET /api/recipes/shared` lists shared-with-me.
 - `server/src/routes/import.js` + `server/src/tessdata/eng.traineddata.gz` — photo →
   recipe OCR via tesseract.js (bundled language data; pre-fills editor, never saves)
 - `client/src/pages/` — route components; `client/src/components/` — shared UI

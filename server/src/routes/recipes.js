@@ -73,13 +73,17 @@ router.get('/public', (req, res) => {
   let rows;
   if (q) {
     const like = `%${q}%`;
+    // Match title, description, ingredients (stored as JSON text), or any tag name.
     rows = db
       .prepare(
-        `SELECT * FROM recipes WHERE is_published = 1
-         AND (title LIKE ? OR description LIKE ?)
-         ORDER BY updated_at DESC`
+        `SELECT DISTINCT r.* FROM recipes r
+         LEFT JOIN recipe_tags rt ON rt.recipe_id = r.id
+         LEFT JOIN tags t ON t.id = rt.tag_id
+         WHERE r.is_published = 1
+           AND (r.title LIKE ? OR r.description LIKE ? OR r.ingredients LIKE ? OR t.name LIKE ?)
+         ORDER BY r.updated_at DESC`
       )
-      .all(like, like);
+      .all(like, like, like, like);
   } else {
     rows = db.prepare('SELECT * FROM recipes WHERE is_published = 1 ORDER BY updated_at DESC').all();
   }
@@ -92,13 +96,32 @@ router.get('/mine', requireAuth, (req, res) => {
   res.json({ recipes: rows.map(hydrate) });
 });
 
-// GET /api/recipes/:id — owner sees their own; anyone sees published.
+// Is this user a collaborator (co-creator) on the recipe?
+function isCollaborator(recipeId, userId) {
+  if (!userId) return false;
+  return !!db.prepare('SELECT 1 FROM recipe_collaborators WHERE recipe_id = ? AND user_id = ?').get(recipeId, userId);
+}
+
+// GET /api/recipes/shared — recipes shared with the logged-in user (must precede /:id).
+router.get('/shared', requireAuth, (req, res) => {
+  const rows = db
+    .prepare(
+      `SELECT r.* FROM recipes r
+       JOIN recipe_collaborators rc ON rc.recipe_id = r.id
+       WHERE rc.user_id = ? ORDER BY r.updated_at DESC`
+    )
+    .all(req.user.id);
+  res.json({ recipes: rows.map(hydrate) });
+});
+
+// GET /api/recipes/:id — owner/collaborator see private; anyone sees published.
 router.get('/:id', (req, res) => {
   const row = db.prepare('SELECT * FROM recipes WHERE id = ?').get(req.params.id);
   if (!row) return res.status(404).json({ error: 'Recipe not found' });
   const isOwner = req.user && req.user.id === row.user_id;
-  if (!row.is_published && !isOwner) return res.status(403).json({ error: 'This recipe is private' });
-  res.json({ recipe: hydrate(row), is_owner: !!isOwner });
+  const canEdit = isOwner || isCollaborator(row.id, req.user?.id);
+  if (!row.is_published && !canEdit) return res.status(403).json({ error: 'This recipe is private' });
+  res.json({ recipe: hydrate(row), is_owner: !!isOwner, can_edit: !!canEdit });
 });
 
 // POST /api/recipes — create.
@@ -128,7 +151,7 @@ router.post('/', requireAuth, (req, res) => {
   res.status(201).json({ recipe: hydrate(row) });
 });
 
-// Ownership guard for mutating a specific recipe.
+// Ownership guard — owner only (publish, delete, manage collaborators).
 function loadOwnedRecipe(req, res) {
   const row = db.prepare('SELECT * FROM recipes WHERE id = ?').get(req.params.id);
   if (!row) {
@@ -136,15 +159,36 @@ function loadOwnedRecipe(req, res) {
     return null;
   }
   if (row.user_id !== req.user.id) {
-    res.status(403).json({ error: 'You can only edit your own recipes' });
+    res.status(403).json({ error: 'Only the recipe owner can do that' });
     return null;
   }
   return row;
 }
 
-// PUT /api/recipes/:id — update.
+// Edit guard — owner OR a collaborator (content edits: text, steps, photos, cover).
+function loadEditableRecipe(req, res) {
+  const row = db.prepare('SELECT * FROM recipes WHERE id = ?').get(req.params.id);
+  if (!row) {
+    res.status(404).json({ error: 'Recipe not found' });
+    return null;
+  }
+  if (row.user_id !== req.user.id && !isCollaborator(row.id, req.user.id)) {
+    res.status(403).json({ error: 'You do not have edit access to this recipe' });
+    return null;
+  }
+  return row;
+}
+
+// Used by other routers (images) to authorize content edits.
+function canEditRecipe(recipeId, userId) {
+  const r = db.prepare('SELECT user_id FROM recipes WHERE id = ?').get(recipeId);
+  if (!r) return false;
+  return r.user_id === userId || isCollaborator(recipeId, userId);
+}
+
+// PUT /api/recipes/:id — update (owner or collaborator).
 router.put('/:id', requireAuth, (req, res) => {
-  const row = loadOwnedRecipe(req, res);
+  const row = loadEditableRecipe(req, res);
   if (!row) return;
   const { title, description, prep_min, cook_min, servings, ingredients, steps, tags } = req.body ?? {};
   if (!title || !title.trim()) return res.status(400).json({ error: 'Title is required' });
@@ -178,9 +222,9 @@ router.patch('/:id/publish', requireAuth, (req, res) => {
   res.json({ recipe: hydrate(db.prepare('SELECT * FROM recipes WHERE id = ?').get(row.id)) });
 });
 
-// PATCH /api/recipes/:id/cover — choose which uploaded image is the cover.
+// PATCH /api/recipes/:id/cover — choose which uploaded image is the cover (owner or collaborator).
 router.patch('/:id/cover', requireAuth, (req, res) => {
-  const row = loadOwnedRecipe(req, res);
+  const row = loadEditableRecipe(req, res);
   if (!row) return;
   const imageId = req.body?.image_id ?? null;
   if (imageId !== null) {
@@ -199,5 +243,41 @@ router.delete('/:id', requireAuth, (req, res) => {
   res.json({ ok: true });
 });
 
+// --- Collaborators (co-creators) — owner only manages them ---
+
+// GET /api/recipes/:id/collaborators
+router.get('/:id/collaborators', requireAuth, (req, res) => {
+  const row = loadOwnedRecipe(req, res);
+  if (!row) return;
+  const collaborators = db
+    .prepare(
+      `SELECT u.id, u.email, u.display_name FROM recipe_collaborators rc
+       JOIN users u ON u.id = rc.user_id WHERE rc.recipe_id = ? ORDER BY u.display_name`
+    )
+    .all(row.id);
+  res.json({ collaborators });
+});
+
+// POST /api/recipes/:id/collaborators { email } — share with an existing account.
+router.post('/:id/collaborators', requireAuth, (req, res) => {
+  const row = loadOwnedRecipe(req, res);
+  if (!row) return;
+  const email = (req.body?.email ?? '').trim().toLowerCase();
+  if (!email) return res.status(400).json({ error: 'Email is required' });
+  const user = db.prepare('SELECT id, email, display_name FROM users WHERE email = ?').get(email);
+  if (!user) return res.status(404).json({ error: 'No account with that email on this instance' });
+  if (user.id === row.user_id) return res.status(400).json({ error: 'You already own this recipe' });
+  db.prepare('INSERT OR IGNORE INTO recipe_collaborators (recipe_id, user_id) VALUES (?, ?)').run(row.id, user.id);
+  res.status(201).json({ collaborator: { id: user.id, email: user.email, display_name: user.display_name } });
+});
+
+// DELETE /api/recipes/:id/collaborators/:userId
+router.delete('/:id/collaborators/:userId', requireAuth, (req, res) => {
+  const row = loadOwnedRecipe(req, res);
+  if (!row) return;
+  db.prepare('DELETE FROM recipe_collaborators WHERE recipe_id = ? AND user_id = ?').run(row.id, req.params.userId);
+  res.json({ ok: true });
+});
+
 export default router;
-export { hydrate, loadOwnedRecipe };
+export { hydrate, loadOwnedRecipe, canEditRecipe };

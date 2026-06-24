@@ -18,6 +18,8 @@ export default function Layout({ children }) {
         <Link to="/">Browse</Link>
         {user && <Link to="/my">My Recipes</Link>}
         {user && <Link to="/new">New Recipe</Link>}
+        {user && <Link to="/planner">Planner</Link>}
+        {user && <Link to="/shopping">Shopping</Link>}
         {user?.role === 'admin' && <Link to="/admin">Admin</Link>}
         <span className="spacer" />
         {user ? (

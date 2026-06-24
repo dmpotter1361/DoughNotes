@@ -9,6 +9,8 @@ export default function Import() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
+  const [url, setUrl] = useState('');
+
   async function onFile(e) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -23,6 +25,20 @@ export default function Import() {
       setBusy(false);
     }
     e.target.value = '';
+  }
+
+  async function importUrl(e) {
+    e.preventDefault();
+    if (!url.trim()) return;
+    setError('');
+    setBusy(true);
+    try {
+      const { draft } = await api.post('/import/url', { url });
+      navigate('/new', { state: { draft } });
+    } catch (err) {
+      setError(err.message);
+      setBusy(false);
+    }
   }
 
   return (
@@ -41,6 +57,22 @@ export default function Import() {
           <input type="file" accept="image/*" onChange={onFile} style={{ display: 'none' }} />
         </label>
       )}
+
+      <hr style={{ border: 0, borderTop: '1px solid var(--line)', margin: '1.5rem 0' }} />
+
+      <h2 style={{ marginTop: 0 }}>…or import from a link</h2>
+      <p className="muted">Paste a URL from a recipe website and we'll pull in the title, ingredients, and steps.</p>
+      <form onSubmit={importUrl}>
+        <input
+          type="url"
+          placeholder="https://example.com/best-banana-bread"
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+        />
+        <button type="submit" disabled={busy} style={{ marginTop: '0.6rem' }}>
+          {busy ? 'Importing…' : 'Import from URL'}
+        </button>
+      </form>
 
       {error && <p className="error">{error}</p>}
 

@@ -1,7 +1,9 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
-import db from '../db.js';
+import fs from 'fs';
+import path from 'path';
+import db, { UPLOADS_DIR } from '../db.js';
 import { requireAdmin } from '../auth.js';
 
 const router = Router();
@@ -63,6 +65,28 @@ router.post('/users/:id/reset-password', (req, res) => {
   const temp = makeTempPassword();
   db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(bcrypt.hashSync(temp, 10), target.id);
   res.json({ temp_password: temp });
+});
+
+// DELETE /api/admin/users/:id — remove a user and their content (cascades via FKs).
+router.delete('/users/:id', (req, res) => {
+  const target = db.prepare('SELECT * FROM users WHERE id = ?').get(req.params.id);
+  if (!target) return res.status(404).json({ error: 'User not found' });
+  if (target.id === req.user.id) {
+    return res.status(400).json({ error: 'You cannot delete your own account' });
+  }
+  // Best-effort cleanup of this user's locally-stored image files before the cascade.
+  const localFiles = db
+    .prepare(
+      `SELECT ri.local_filename FROM recipe_images ri
+       JOIN recipes r ON r.id = ri.recipe_id
+       WHERE r.user_id = ? AND ri.storage = 'local' AND ri.local_filename IS NOT NULL`
+    )
+    .all(target.id);
+  for (const f of localFiles) {
+    fs.rm(path.join(UPLOADS_DIR, f.local_filename), { force: true }, () => {});
+  }
+  db.prepare('DELETE FROM users WHERE id = ?').run(target.id); // cascades recipes, images, etc.
+  res.json({ ok: true });
 });
 
 export default router;

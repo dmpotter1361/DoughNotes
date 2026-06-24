@@ -5,10 +5,12 @@ import RecipeCard from '../components/RecipeCard.jsx';
 
 export default function MyRecipes() {
   const [recipes, setRecipes] = useState(null);
+  const [shared, setShared] = useState([]);
   const [error, setError] = useState('');
 
   useEffect(() => {
     api.get('/recipes/mine').then((d) => setRecipes(d.recipes)).catch((e) => setError(e.message));
+    api.get('/recipes/shared').then((d) => setShared(d.recipes)).catch(() => {});
   }, []);
 
   if (error) return <p className="error">{error}</p>;
@@ -39,6 +41,16 @@ export default function MyRecipes() {
             </div>
           ))}
         </div>
+      )}
+
+      {shared.length > 0 && (
+        <>
+          <h2 style={{ marginTop: '2rem' }}>Shared with me</h2>
+          <p className="muted">Recipes others have invited you to help edit.</p>
+          <div className="recipe-grid">
+            {shared.map((r) => <RecipeCard key={r.id} recipe={r} />)}
+          </div>
+        </>
       )}
     </div>
   );

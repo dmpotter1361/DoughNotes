@@ -38,8 +38,8 @@ export default function RecipeEditor() {
 
   useEffect(() => {
     if (!editing) return;
-    api.get(`/recipes/${id}`).then(({ recipe, is_owner }) => {
-      if (!is_owner) { navigate(`/recipes/${id}`); return; }
+    api.get(`/recipes/${id}`).then(({ recipe, is_owner, can_edit }) => {
+      if (!is_owner && !can_edit) { navigate(`/recipes/${id}`); return; }
       setForm({
         title: recipe.title,
         description: recipe.description,

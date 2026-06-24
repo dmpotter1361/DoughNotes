@@ -7,6 +7,7 @@ import { Readable } from 'stream';
 import db, { UPLOADS_DIR } from '../db.js';
 import { requireAuth } from '../auth.js';
 import { getLinkedAccount, uploadFile, downloadFile, deleteFile } from '../drive.js';
+import { canEditRecipe } from './recipes.js';
 
 const router = Router();
 
@@ -38,8 +39,8 @@ function ownedRecipeOr404(req, res) {
     res.status(404).json({ error: 'Recipe not found' });
     return null;
   }
-  if (recipe.user_id !== req.user.id) {
-    res.status(403).json({ error: 'You can only edit your own recipes' });
+  if (recipe.user_id !== req.user.id && !canEditRecipe(recipe.id, req.user.id)) {
+    res.status(403).json({ error: 'You do not have edit access to this recipe' });
     return null;
   }
   return recipe;
@@ -134,8 +135,8 @@ router.patch('/images/:id', requireAuth, (req, res) => {
   const img = db.prepare('SELECT * FROM recipe_images WHERE id = ?').get(req.params.id);
   if (!img) return res.status(404).json({ error: 'Image not found' });
   const recipe = db.prepare('SELECT user_id FROM recipes WHERE id = ?').get(img.recipe_id);
-  if (!recipe || recipe.user_id !== req.user.id) {
-    return res.status(403).json({ error: 'You can only edit your own recipes' });
+  if (!recipe || !canEditRecipe(img.recipe_id, req.user.id)) {
+    return res.status(403).json({ error: 'You do not have edit access to this recipe' });
   }
   const stepIndex = req.body?.step_index === null || req.body?.step_index === undefined
     ? null
@@ -149,8 +150,8 @@ router.delete('/images/:id', requireAuth, async (req, res) => {
   const img = db.prepare('SELECT * FROM recipe_images WHERE id = ?').get(req.params.id);
   if (!img) return res.status(404).json({ error: 'Image not found' });
   const recipe = db.prepare('SELECT user_id FROM recipes WHERE id = ?').get(img.recipe_id);
-  if (!recipe || recipe.user_id !== req.user.id) {
-    return res.status(403).json({ error: 'You can only edit your own recipes' });
+  if (!recipe || !canEditRecipe(img.recipe_id, req.user.id)) {
+    return res.status(403).json({ error: 'You do not have edit access to this recipe' });
   }
 
   if (img.storage === 'drive' && img.drive_file_id) {

@@ -114,6 +114,32 @@ db.exec(`
   );
   CREATE INDEX IF NOT EXISTS idx_ratings_recipe ON ratings(recipe_id);
 
+  CREATE TABLE IF NOT EXISTS shopping_items (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    label      TEXT NOT NULL,
+    checked    INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  CREATE INDEX IF NOT EXISTS idx_shopping_user ON shopping_items(user_id);
+
+  CREATE TABLE IF NOT EXISTS meal_plan (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    plan_date  TEXT NOT NULL,                 -- 'YYYY-MM-DD'
+    recipe_id  INTEGER NOT NULL REFERENCES recipes(id) ON DELETE CASCADE,
+    slot       TEXT,                          -- optional: breakfast/lunch/dinner
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  CREATE INDEX IF NOT EXISTS idx_mealplan_user_date ON meal_plan(user_id, plan_date);
+
+  CREATE TABLE IF NOT EXISTS recipe_collaborators (
+    recipe_id INTEGER NOT NULL REFERENCES recipes(id) ON DELETE CASCADE,
+    user_id   INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (recipe_id, user_id)
+  );
+
   CREATE TABLE IF NOT EXISTS google_accounts (
     user_id         INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
     google_email    TEXT,

@@ -33,6 +33,18 @@ export default function Admin() {
     }
   }
 
+  async function deleteUser(u) {
+    if (!confirm(`Permanently DELETE ${u.display_name} (${u.email}) and all ${u.recipe_count} of their recipes? This cannot be undone.`)) return;
+    if (!confirm(`Really delete ${u.display_name}? Last chance.`)) return;
+    setError('');
+    try {
+      await api.del(`/admin/users/${u.id}`);
+      setUsers((prev) => prev.filter((x) => x.id !== u.id));
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+
   if (error) return <p className="error">{error}</p>;
   if (!users) return <p>Loading…</p>;
 
@@ -83,10 +95,17 @@ export default function Admin() {
                         </button>
                         <button
                           className="secondary"
-                          style={{ padding: '0.25rem 0.6rem' }}
+                          style={{ padding: '0.25rem 0.6rem', marginRight: '0.4rem' }}
                           onClick={() => resetPassword(u)}
                         >
                           Reset password
+                        </button>
+                        <button
+                          className="danger"
+                          style={{ padding: '0.25rem 0.6rem' }}
+                          onClick={() => deleteUser(u)}
+                        >
+                          Delete
                         </button>
                       </>
                     )}
