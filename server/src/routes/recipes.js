@@ -1,9 +1,16 @@
 import { Router } from 'express';
-import db from '../db.js';
+import fs from 'fs';
+import path from 'path';
+import crypto from 'crypto';
+import { Readable } from 'stream';
+import db, { UPLOADS_DIR } from '../db.js';
 import { requireAuth } from '../auth.js';
 import { slugify, parseJson, cleanLines } from '../util.js';
+import { getLinkedAccount, uploadFile, downloadFile } from '../drive.js';
 
 const router = Router();
+
+const MIME_EXT = { 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp', 'image/gif': '.gif' };
 
 // Shape a recipe row for the client, attaching images + tags.
 function hydrate(row) {
@@ -184,6 +191,78 @@ router.post('/bulk', requireAuth, (req, res) => {
   });
   createMany(drafts);
   res.status(201).json({ created: created.length, ids: created });
+});
+
+// Read an image's raw bytes from wherever it lives (local disk, or the owner's Drive).
+async function readImageBytes(img, ownerId) {
+  if (img.storage === 'drive' && img.drive_file_id) {
+    const { contentType, body } = await downloadFile(ownerId, img.drive_file_id);
+    const chunks = [];
+    for await (const c of Readable.fromWeb(body)) chunks.push(c);
+    return { buffer: Buffer.concat(chunks), mimeType: contentType || 'image/jpeg' };
+  }
+  if (img.storage === 'local' && img.local_filename) {
+    const buffer = fs.readFileSync(path.join(UPLOADS_DIR, img.local_filename));
+    const ext = path.extname(img.local_filename).toLowerCase();
+    const mimeType = Object.keys(MIME_EXT).find((m) => MIME_EXT[m] === ext) || 'image/jpeg';
+    return { buffer, mimeType };
+  }
+  return null;
+}
+
+// POST /api/recipes/:id/copy — clone a recipe the caller can view into their own
+// collection as a new private recipe (photos included, with attribution).
+router.post('/:id/copy', requireAuth, async (req, res) => {
+  const src = db.prepare('SELECT * FROM recipes WHERE id = ?').get(req.params.id);
+  if (!src) return res.status(404).json({ error: 'Recipe not found' });
+  const canView = !!src.is_published || src.user_id === req.user.id || isCollaborator(src.id, req.user.id);
+  if (!canView) return res.status(403).json({ error: 'You can only copy recipes you can view' });
+
+  const author = db.prepare('SELECT display_name FROM users WHERE id = ?').get(src.user_id);
+  const credit = author && src.user_id !== req.user.id ? `Adapted from ${author.display_name}.` : '';
+  const description = [credit, src.description].filter(Boolean).join('\n\n');
+
+  const newId = db
+    .prepare(
+      `INSERT INTO recipes (user_id, title, slug, description, prep_min, cook_min, servings, ingredients, steps)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+    .run(req.user.id, src.title, slugify(src.title), description, src.prep_min, src.cook_min, src.servings, src.ingredients, src.steps)
+    .lastInsertRowid;
+
+  const tagNames = db
+    .prepare('SELECT t.name FROM tags t JOIN recipe_tags rt ON rt.tag_id = t.id WHERE rt.recipe_id = ?')
+    .all(src.id).map((t) => t.name);
+  if (tagNames.length) setTags(newId, tagNames);
+
+  // Copy photos into the caller's storage (best-effort), preserving step/sort + cover.
+  const linked = !!getLinkedAccount(req.user.id);
+  const srcImages = db.prepare('SELECT * FROM recipe_images WHERE recipe_id = ? ORDER BY sort_order, id').all(src.id);
+  let newCoverId = null;
+  for (const img of srcImages) {
+    try {
+      const data = await readImageBytes(img, src.user_id);
+      if (!data) continue;
+      const ext = MIME_EXT[data.mimeType] || '.jpg';
+      let newImgId;
+      if (linked) {
+        const fileId = await uploadFile(req.user.id, { buffer: data.buffer, mimeType: data.mimeType, name: `recipe-${newId}-${Date.now()}${ext}` });
+        newImgId = db.prepare('INSERT INTO recipe_images (recipe_id, storage, drive_file_id, step_index, sort_order) VALUES (?, ?, ?, ?, ?)')
+          .run(newId, 'drive', fileId, img.step_index, img.sort_order).lastInsertRowid;
+      } else {
+        const filename = `${crypto.randomUUID()}${ext}`;
+        fs.writeFileSync(path.join(UPLOADS_DIR, filename), data.buffer);
+        newImgId = db.prepare('INSERT INTO recipe_images (recipe_id, storage, local_filename, step_index, sort_order) VALUES (?, ?, ?, ?, ?)')
+          .run(newId, 'local', filename, img.step_index, img.sort_order).lastInsertRowid;
+      }
+      if (src.cover_image_id === img.id) newCoverId = newImgId;
+    } catch (e) {
+      console.error('Copy image failed:', e.message);
+    }
+  }
+  if (newCoverId) db.prepare('UPDATE recipes SET cover_image_id = ? WHERE id = ?').run(newCoverId, newId);
+
+  res.status(201).json({ recipe: hydrate(db.prepare('SELECT * FROM recipes WHERE id = ?').get(newId)) });
 });
 
 // Ownership guard — owner only (publish, delete, manage collaborators).

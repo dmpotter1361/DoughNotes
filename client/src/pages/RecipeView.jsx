@@ -24,6 +24,15 @@ export default function RecipeView() {
       .catch((e) => setError(e.message));
   }, [id]);
 
+  async function copyRecipe() {
+    try {
+      const { recipe: copy } = await api.post(`/recipes/${id}/copy`);
+      navigate(`/recipes/${copy.id}/edit`);
+    } catch (e) {
+      alert(e.message);
+    }
+  }
+
   async function addToShoppingList() {
     try {
       const { added } = await api.post('/shopping/add', { recipe_ids: [Number(id)] });
@@ -67,6 +76,7 @@ export default function RecipeView() {
         </div>
         <div className="no-print" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
           <button onClick={() => navigate(`/recipes/${id}/cook`)}>👨‍🍳 Cook</button>
+          {user && !isOwner && <button className="secondary" onClick={copyRecipe}>📋 Save a copy</button>}
           {user && <button className="secondary" onClick={addToShoppingList}>🛒 Add to list</button>}
           <button className="secondary" onClick={() => window.print()}>Print</button>
           {canEdit && <button className="secondary" onClick={() => navigate(`/recipes/${id}/edit`)}>Edit</button>}
