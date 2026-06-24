@@ -92,6 +92,16 @@ db.exec(`
     created_at     TEXT NOT NULL DEFAULT (datetime('now'))
   );
   CREATE INDEX IF NOT EXISTS idx_bakes_recipe ON bake_logs(recipe_id);
+
+  CREATE TABLE IF NOT EXISTS google_accounts (
+    user_id         INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    google_email    TEXT,
+    refresh_token   TEXT NOT NULL,
+    access_token    TEXT,
+    token_expiry    INTEGER,          -- epoch ms when access_token expires
+    drive_folder_id TEXT,             -- id of the user's DoughNotes/ Drive folder
+    linked_at       TEXT NOT NULL DEFAULT (datetime('now'))
+  );
 `);
 
 export default db;

@@ -10,8 +10,14 @@ community feed. Repo `dmpotter1361/DoughNotes`.
 - **Server**: Node.js + Express 5 (`server/`), ESM
 - **DB**: SQLite via better-sqlite3 (file in `DATA_DIR`, default `server/data/`)
 - **Auth**: email + password, JWT in an httpOnly cookie (`server/src/auth.js`)
-- **Images**: local volume, 1 MB/image cap. Google Drive integration is planned
-  (schema already carries `storage`/`drive_*` columns).
+- **Images**: tiered. Local volume (1 MB cap) until a user links Google Drive, then
+  their photos go to a `DoughNotes/` folder in their own Drive (20 MB cap) and
+  existing local images migrate on link. Drive images are **proxied** through
+  `GET /api/images/:id` using the owner's token (preserves the privacy model).
+- **Google Drive** (`server/src/drive.js` + `routes/drive.js`): per-user OAuth
+  (`drive.file` scope) via google-auth-library; tokens in `google_accounts` table.
+  Recipe/collection → PDF (`server/src/pdf.js`, pdfkit) saved to Drive. Needs
+  `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`/`APP_BASE_URL`; disabled gracefully if unset.
 - **Port**: 3500 (a nod to 350°F)
 
 ## Run / build

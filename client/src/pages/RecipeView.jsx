@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { api } from '../api.js';
+import { useAuth } from '../auth.jsx';
 import BakeLog from '../components/BakeLog.jsx';
 
 export default function RecipeView() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [recipe, setRecipe] = useState(null);
   const [isOwner, setIsOwner] = useState(false);
   const [tab, setTab] = useState('recipe');
@@ -28,6 +30,15 @@ export default function RecipeView() {
     navigate('/my');
   }
 
+  async function saveToDrive() {
+    try {
+      const { link } = await api.post(`/drive/export/recipe/${id}`);
+      window.open(link, '_blank');
+    } catch (e) {
+      alert(e.message);
+    }
+  }
+
   if (error) return <p className="error">{error}</p>;
   if (!recipe) return <p>Loading…</p>;
 
@@ -44,6 +55,7 @@ export default function RecipeView() {
           <div className="no-print" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
             <button className="secondary" onClick={() => navigate(`/recipes/${id}/edit`)}>Edit</button>
             <button className="secondary" onClick={() => window.print()}>Print</button>
+            {user?.drive_linked && <button className="secondary" onClick={saveToDrive}>Save PDF to Drive</button>}
             <button onClick={togglePublish}>{recipe.is_published ? 'Unpublish' : 'Publish'}</button>
             <button className="danger" onClick={remove}>Delete</button>
           </div>

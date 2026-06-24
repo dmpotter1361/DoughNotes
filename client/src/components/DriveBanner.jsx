@@ -20,7 +20,7 @@ export default function DriveBanner() {
         and save your whole collection as a printable <strong>recipe book</strong>.
         Without it, photos are capped at 1&nbsp;MB each.
       </p>
-      <button disabled title="Coming soon">Connect Drive</button>
+      <a className="btn" href="/api/drive/connect">Connect Drive</a>
       <button className="secondary" onClick={dismiss}>Later</button>
     </div>
   );

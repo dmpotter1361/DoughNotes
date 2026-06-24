@@ -22,7 +22,7 @@ export default function Layout({ children }) {
         <span className="spacer" />
         {user ? (
           <>
-            <span className="muted" style={{ color: '#e9dcc6' }}>{user.display_name}</span>
+            <Link to="/account">{user.display_name}</Link>
             <a href="#" onClick={(e) => { e.preventDefault(); handleLogout(); }}>Log out</a>
           </>
         ) : (

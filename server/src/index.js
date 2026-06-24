@@ -1,10 +1,10 @@
+import 'dotenv/config'; // load .env before any module reads process.env
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { fileURLToPath } from 'url';
 import path from 'path';
 import fs from 'fs';
-import dotenv from 'dotenv';
 
 import './db.js'; // initialize schema on boot
 import { attachUser } from './auth.js';
@@ -14,8 +14,7 @@ import imageRoutes from './routes/images.js';
 import bakeRoutes from './routes/bakes.js';
 import collectionRoutes from './routes/collections.js';
 import adminRoutes from './routes/admin.js';
-
-dotenv.config();
+import driveRoutes from './routes/drive.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -34,6 +33,7 @@ app.use('/api', imageRoutes);       // /api/recipes/:id/images, /api/images/:id
 app.use('/api', bakeRoutes);        // /api/recipes/:id/bakes, /api/bakes/:id
 app.use('/api', collectionRoutes);  // /api/tags, /api/collections...
 app.use('/api/admin', adminRoutes);
+app.use('/api/drive', driveRoutes); // /api/drive/connect, callback, status, export...
 
 // --- Serve frontend (production / Docker) ---
 const publicDir = path.join(__dirname, '..', 'public');

@@ -12,6 +12,11 @@ services:
       # Leave false for plain HTTP. Set COOKIE_SECURE=true in .env once you put
       # the app behind HTTPS (e.g. a reverse proxy), or logins will break over HTTP.
       - COOKIE_SECURE=${COOKIE_SECURE:-false}
+      # Public base URL — builds the Google OAuth redirect URI + Drive links.
+      - APP_BASE_URL=${APP_BASE_URL:-http://localhost:3500}
+      # Google Drive integration (optional). Leave blank to disable.
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
     volumes:
       - doughnotes-data:/data
     restart: unless-stopped
