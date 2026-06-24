@@ -40,7 +40,24 @@ cp .env.example .env
 #   then edit .env and set JWT_SECRET to a long random string, e.g.:
 #   openssl rand -hex 32
 
-# 3. Build and start (runs in the background)
+# 3. Start it — the launcher checks your setup, picks profiles, and health-checks
+./start.sh
+```
+
+`start.sh` is the easiest way to run DoughNotes: it generates a `JWT_SECRET` if missing,
+picks HTTP vs HTTPS and AI on/off (from your `.env`, flags, or a quick prompt), starts the
+right containers, waits for the app to be healthy, and pulls the AI model if needed.
+
+```bash
+./start.sh                 # interactive: confirms mode + AI
+./start.sh --https --ai    # HTTPS (Caddy) + local AI (Ollama), non-interactively
+./start.sh --http --no-ai  # plain HTTP on :3500, heuristic imports
+./start.sh --help          # all options
+```
+
+Prefer to drive Compose yourself? That works too:
+
+```bash
 sudo docker compose up -d --build
 ```
 
