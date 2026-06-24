@@ -178,6 +178,19 @@ router.patch('/:id/publish', requireAuth, (req, res) => {
   res.json({ recipe: hydrate(db.prepare('SELECT * FROM recipes WHERE id = ?').get(row.id)) });
 });
 
+// PATCH /api/recipes/:id/cover — choose which uploaded image is the cover.
+router.patch('/:id/cover', requireAuth, (req, res) => {
+  const row = loadOwnedRecipe(req, res);
+  if (!row) return;
+  const imageId = req.body?.image_id ?? null;
+  if (imageId !== null) {
+    const img = db.prepare('SELECT id FROM recipe_images WHERE id = ? AND recipe_id = ?').get(imageId, row.id);
+    if (!img) return res.status(400).json({ error: 'That image is not on this recipe' });
+  }
+  db.prepare("UPDATE recipes SET cover_image_id = ?, updated_at = datetime('now') WHERE id = ?").run(imageId, row.id);
+  res.json({ recipe: hydrate(db.prepare('SELECT * FROM recipes WHERE id = ?').get(row.id)) });
+});
+
 // DELETE /api/recipes/:id
 router.delete('/:id', requireAuth, (req, res) => {
   const row = loadOwnedRecipe(req, res);

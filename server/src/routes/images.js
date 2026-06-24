@@ -60,6 +60,10 @@ router.post('/recipes/:recipeId/images', requireAuth, (req, res) => {
 
     const linked = !!getLinkedAccount(req.user.id);
     const ext = ALLOWED.get(req.file.mimetype);
+    // Optional: which step this photo belongs to (null = general/gallery photo).
+    const stepIndex = req.body?.step_index !== undefined && req.body.step_index !== ''
+      ? Number(req.body.step_index)
+      : null;
     const maxOrder = db
       .prepare('SELECT COALESCE(MAX(sort_order), -1) AS m FROM recipe_images WHERE recipe_id = ?')
       .get(recipe.id).m;
@@ -73,8 +77,8 @@ router.post('/recipes/:recipeId/images', requireAuth, (req, res) => {
           name: `recipe-${recipe.id}-${Date.now()}${ext}`,
         });
         info = db
-          .prepare('INSERT INTO recipe_images (recipe_id, storage, drive_file_id, sort_order) VALUES (?, ?, ?, ?)')
-          .run(recipe.id, 'drive', fileId, maxOrder + 1);
+          .prepare('INSERT INTO recipe_images (recipe_id, storage, drive_file_id, step_index, sort_order) VALUES (?, ?, ?, ?, ?)')
+          .run(recipe.id, 'drive', fileId, stepIndex, maxOrder + 1);
       } else {
         if (req.file.size > ONE_MB) {
           return res.status(400).json({ error: 'Image must be 1 MB or smaller — connect Google Drive for larger photos' });
@@ -82,10 +86,10 @@ router.post('/recipes/:recipeId/images', requireAuth, (req, res) => {
         const filename = `${crypto.randomUUID()}${ext}`;
         fs.writeFileSync(path.join(UPLOADS_DIR, filename), req.file.buffer);
         info = db
-          .prepare('INSERT INTO recipe_images (recipe_id, storage, local_filename, sort_order) VALUES (?, ?, ?, ?)')
-          .run(recipe.id, 'local', filename, maxOrder + 1);
+          .prepare('INSERT INTO recipe_images (recipe_id, storage, local_filename, step_index, sort_order) VALUES (?, ?, ?, ?, ?)')
+          .run(recipe.id, 'local', filename, stepIndex, maxOrder + 1);
       }
-      res.status(201).json({ image: { id: info.lastInsertRowid, url: `/api/images/${info.lastInsertRowid}` } });
+      res.status(201).json({ image: { id: info.lastInsertRowid, url: `/api/images/${info.lastInsertRowid}`, step_index: stepIndex } });
     } catch (e) {
       console.error('Image upload error:', e.message);
       res.status(500).json({ error: 'Failed to save image' });
@@ -125,6 +129,21 @@ router.get('/images/:id', async (req, res) => {
   res.status(404).json({ error: 'Image not found' });
 });
 
+// PATCH /api/images/:id — owner reassigns an image's step (null = general photo).
+router.patch('/images/:id', requireAuth, (req, res) => {
+  const img = db.prepare('SELECT * FROM recipe_images WHERE id = ?').get(req.params.id);
+  if (!img) return res.status(404).json({ error: 'Image not found' });
+  const recipe = db.prepare('SELECT user_id FROM recipes WHERE id = ?').get(img.recipe_id);
+  if (!recipe || recipe.user_id !== req.user.id) {
+    return res.status(403).json({ error: 'You can only edit your own recipes' });
+  }
+  const stepIndex = req.body?.step_index === null || req.body?.step_index === undefined
+    ? null
+    : Number(req.body.step_index);
+  db.prepare('UPDATE recipe_images SET step_index = ? WHERE id = ?').run(stepIndex, img.id);
+  res.json({ ok: true });
+});
+
 // DELETE /api/images/:id — owner removes an image (also deletes the stored file).
 router.delete('/images/:id', requireAuth, async (req, res) => {
   const img = db.prepare('SELECT * FROM recipe_images WHERE id = ?').get(req.params.id);
@@ -139,6 +158,8 @@ router.delete('/images/:id', requireAuth, async (req, res) => {
   } else if (img.storage === 'local' && img.local_filename) {
     fs.rm(path.join(UPLOADS_DIR, img.local_filename), { force: true }, () => {});
   }
+  // If this was the recipe's cover, clear the reference.
+  db.prepare('UPDATE recipes SET cover_image_id = NULL WHERE cover_image_id = ?').run(img.id);
   db.prepare('DELETE FROM recipe_images WHERE id = ?').run(img.id);
   res.json({ ok: true });
 });

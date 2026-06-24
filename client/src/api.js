@@ -26,9 +26,13 @@ export const api = {
   patch: (p, b) => request('PATCH', p, b),
   del: (p) => request('DELETE', p),
 
-  // Multipart upload (image). Lets the browser set the boundary header.
-  upload: async (p, file) => {
+  // Multipart upload (image) with optional extra text fields. The browser sets
+  // the multipart boundary header automatically.
+  upload: async (p, file, fields = {}) => {
     const form = new FormData();
+    for (const [k, v] of Object.entries(fields)) {
+      if (v !== undefined && v !== null) form.append(k, String(v));
+    }
     form.append('image', file);
     const res = await fetch(`/api${p}`, { method: 'POST', credentials: 'include', body: form });
     const data = await res.json().catch(() => null);

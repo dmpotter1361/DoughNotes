@@ -90,6 +90,14 @@ export default function RecipeView() {
       {tab === 'recipe' ? (
         <>
         <div className="card">
+          {recipe.cover_url && (
+            <img
+              src={recipe.cover_url}
+              alt={recipe.title}
+              style={{ width: '100%', maxHeight: 360, objectFit: 'cover', borderRadius: 10, marginBottom: '1rem' }}
+            />
+          )}
+
           {recipe.description && <p>{recipe.description}</p>}
 
           <div className="recipe-stats">
@@ -99,11 +107,15 @@ export default function RecipeView() {
             {recipe.servings ? <div><b>{recipe.servings}</b> servings</div> : null}
           </div>
 
-          {recipe.images?.length > 0 && (
-            <div className="gallery">
-              {recipe.images.map((img) => <img key={img.id} src={img.url} alt={recipe.title} />)}
-            </div>
-          )}
+          {/* Gallery: general photos that aren't already the cover */}
+          {(() => {
+            const gallery = (recipe.images || []).filter((im) => im.step_index == null && im.id !== recipe.cover_image_id);
+            return gallery.length > 0 ? (
+              <div className="gallery">
+                {gallery.map((img) => <img key={img.id} src={img.url} alt={recipe.title} />)}
+              </div>
+            ) : null;
+          })()}
 
           {recipe.tags?.length > 0 && (
             <div className="tags">{recipe.tags.map((t) => <span key={t} className="tag">#{t}</span>)}</div>
@@ -136,7 +148,19 @@ export default function RecipeView() {
 
           <h2>Steps</h2>
           <ol className="steps">
-            {recipe.steps.map((s, i) => <li key={i}>{s}</li>)}
+            {recipe.steps.map((s, i) => {
+              const stepPhotos = (recipe.images || []).filter((im) => im.step_index === i);
+              return (
+                <li key={i}>
+                  {s}
+                  {stepPhotos.length > 0 && (
+                    <div className="gallery" style={{ marginTop: '0.5rem' }}>
+                      {stepPhotos.map((im) => <img key={im.id} src={im.url} alt="" />)}
+                    </div>
+                  )}
+                </li>
+              );
+            })}
           </ol>
         </div>
         {recipe.is_published && <RecipeSocial recipeId={id} isOwner={isOwner} />}
