@@ -192,7 +192,17 @@ export default function RecipeEditor() {
         </div>
 
         <label htmlFor="ing">Ingredients <span className="muted">(one per line)</span></label>
-        <textarea id="ing" rows="6" value={ingredients} onChange={(e) => setIngredients(e.target.value)} />
+        <p className="muted" style={{ fontSize: '0.85rem', margin: '0 0 0.3rem' }}>
+          Put the amount first (e.g. <code>2 cups flour</code>) so the recipe scaler can
+          adjust quantities.
+        </p>
+        <textarea
+          id="ing"
+          rows="6"
+          value={ingredients}
+          onChange={(e) => setIngredients(e.target.value)}
+          placeholder={'2 cups flour\n1 tsp baking soda\n3 eggs\n1/2 cup sugar'}
+        />
 
         <label>Steps</label>
         <p className="muted" style={{ fontSize: '0.85rem', margin: '0 0 0.5rem' }}>{sizeHint}</p>
