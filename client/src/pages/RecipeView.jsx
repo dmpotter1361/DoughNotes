@@ -24,6 +24,12 @@ export default function RecipeView() {
       .catch((e) => setError(e.message));
   }, [id]);
 
+  // Set the page title to the recipe name so Print / Save-as-PDF uses it (not "DoughNotes").
+  useEffect(() => {
+    if (recipe?.title) document.title = recipe.title;
+    return () => { document.title = 'DoughNotes'; };
+  }, [recipe?.title]);
+
   async function copyRecipe() {
     try {
       const { recipe: copy } = await api.post(`/recipes/${id}/copy`);
