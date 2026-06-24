@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DoughNotes — your self-hosted recipe book</title>
+  <meta name="description" content="A self-hosted recipe book, tracker, and journal. Runs in a single Docker container on your own server." />
+  <style>
+    :root {
+      --cream: #faf3e7; --paper: #fffdf8; --crust: #c8842a; --crust-dark: #a8691c;
+      --cocoa: #4a3526; --cocoa-soft: #7a6450; --line: #e6d8c3;
+      --shadow: 0 4px 16px rgba(74, 53, 38, 0.14);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; font-family: 'Georgia', 'Iowan Old Style', serif;
+      background: var(--cream); color: var(--cocoa); line-height: 1.6;
+    }
+    a { color: var(--crust-dark); }
+    .wrap { max-width: 860px; margin: 0 auto; padding: 0 1.5rem; }
+
+    /* Hero */
+    header {
+      background: linear-gradient(160deg, #fff6e3 0%, #ffeccb 60%, #f7dcb0 100%);
+      border-bottom: 3px solid var(--crust);
+      text-align: center; padding: 4rem 1.5rem 3.5rem;
+    }
+    .logo { font-size: 3.4rem; font-weight: 700; letter-spacing: 0.5px; margin: 0; }
+    .logo .n { color: var(--crust); }
+    .tagline { font-size: 1.3rem; color: var(--cocoa-soft); margin: 0.6rem 0 1.6rem; }
+    .badges img { margin: 0 0.2rem; vertical-align: middle; }
+    .cta { margin-top: 1.8rem; display: flex; gap: 0.8rem; justify-content: center; flex-wrap: wrap; }
+    .btn {
+      display: inline-block; text-decoration: none; font-weight: 700;
+      padding: 0.7rem 1.5rem; border-radius: 10px; box-shadow: var(--shadow);
+    }
+    .btn.primary { background: var(--crust); color: #fff; }
+    .btn.primary:hover { background: var(--crust-dark); }
+    .btn.ghost { background: var(--paper); color: var(--crust-dark); border: 1px solid var(--crust); }
+    .btn.ghost:hover { background: #fbe7d2; }
+
+    /* Sections */
+    section { padding: 3rem 0; }
+    h2 { font-size: 1.9rem; text-align: center; margin: 0 0 0.4rem; }
+    .sub { text-align: center; color: var(--cocoa-soft); margin: 0 0 2rem; }
+
+    .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 1.2rem; }
+    .feature {
+      background: var(--paper); border: 1px solid var(--line); border-radius: 12px;
+      padding: 1.4rem; box-shadow: var(--shadow);
+    }
+    .feature .icon { font-size: 1.8rem; }
+    .feature h3 { margin: 0.5rem 0 0.3rem; }
+    .feature p { margin: 0; color: var(--cocoa-soft); font-size: 0.97rem; }
+
+    .install { background: var(--paper); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+    pre {
+      background: var(--cocoa); color: #f5ead6; border-radius: 12px;
+      padding: 1.3rem 1.5rem; overflow-x: auto; font-size: 0.92rem; line-height: 1.7;
+      box-shadow: var(--shadow); font-family: 'SFMono-Regular', Consolas, monospace;
+    }
+    pre .c { color: #c9a87a; } /* comment */
+    .note { text-align: center; color: var(--cocoa-soft); margin-top: 1.2rem; }
+    .port { color: var(--crust-dark); font-weight: 700; }
+
+    footer { text-align: center; padding: 2.5rem 1.5rem; color: var(--cocoa-soft); font-size: 0.9rem; }
+    footer a { color: var(--crust-dark); }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <h1 class="logo">Dough<span class="n">Notes</span> 🥐</h1>
+      <p class="tagline">Your self-hosted recipe book, tracker &amp; journal.</p>
+      <p class="badges">
+        <a href="https://github.com/dmpotter1361/DoughNotes">
+          <img src="https://img.shields.io/github/stars/dmpotter1361/DoughNotes?style=flat&color=c8842a" alt="Stars">
+        </a>
+        <img src="https://img.shields.io/badge/license-GPL--3.0-a8691c" alt="License: GPL-3.0">
+        <img src="https://img.shields.io/badge/docker-ready-c8842a?logo=docker&logoColor=white" alt="Docker ready">
+      </p>
+      <div class="cta">
+        <a class="btn primary" href="https://github.com/dmpotter1361/DoughNotes">View on GitHub</a>
+        <a class="btn ghost" href="#install">Run it yourself</a>
+      </div>
+    </div>
+  </header>
+
+  <section class="wrap">
+    <h2>What's in the kitchen</h2>
+    <p class="sub">Everything stays on your server. Your recipes are yours.</p>
+    <div class="features">
+      <div class="feature">
+        <div class="icon">📖</div><h3>Your recipe collection</h3>
+        <p>A rich editor for ingredients, steps, times, servings, tags, and collections.</p>
+      </div>
+      <div class="feature">
+        <div class="icon">🔒</div><h3>Private by default</h3>
+        <p>Every recipe stays private until <em>you</em> choose to publish it. Not even admins can peek.</p>
+      </div>
+      <div class="feature">
+        <div class="icon">🌐</div><h3>Community feed</h3>
+        <p>Publish your best recipes and browse what others have shared.</p>
+      </div>
+      <div class="feature">
+        <div class="icon">📓</div><h3>Private bake log</h3>
+        <p>A "My Bakes" tab on every recipe — log each attempt, how it turned out, what to try next.</p>
+      </div>
+      <div class="feature">
+        <div class="icon">📸</div><h3>Photos</h3>
+        <p>Attach photos to your recipes. Connect Google Drive for unlimited storage <em>(coming soon)</em>.</p>
+      </div>
+      <div class="feature">
+        <div class="icon">🐳</div><h3>One container</h3>
+        <p>Runs as a single Docker image. Clone, <code>docker compose up</code>, done.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="install" id="install">
+    <div class="wrap">
+      <h2>Run it on your server</h2>
+      <p class="sub">You need Docker and Git. That's it.</p>
+<pre><span class="c"># 1. Get the code</span>
+git clone https://github.com/dmpotter1361/DoughNotes.git
+cd DoughNotes
+
+<span class="c"># 2. Set your session secret</span>
+cp .env.example .env
+<span class="c">#    edit .env → set JWT_SECRET (e.g. `openssl rand -hex 32`)</span>
+
+<span class="c"># 3. Build &amp; start</span>
+docker compose up -d --build</pre>
+      <p class="note">
+        Then open <span class="port">http://&lt;your-server&gt;:3500</span> and register —
+        the first account becomes the admin.<br>
+        <small>(Port 3500 is a nod to 350°F. 🔥)</small>
+      </p>
+    </div>
+  </section>
+
+  <footer>
+    <p>
+      DoughNotes — a personal project by
+      <a href="https://github.com/dmpotter1361">dmpotter1361</a> ·
+      <a href="https://github.com/dmpotter1361/DoughNotes/blob/main/LICENSE">GPL-3.0</a>
+    </p>
+  </footer>
+</body>
+</html>
