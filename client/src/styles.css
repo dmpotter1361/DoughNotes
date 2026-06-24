@@ -179,6 +179,27 @@ th { color: var(--cocoa-soft); font-size: 0.85rem; text-transform: uppercase; le
 .pill.published { background: #e3efd2; color: #4a5d23; }
 .pill.private { background: #f0e3d2; color: #7a6450; }
 
+/* Mobile polish */
+@media (max-width: 600px) {
+  .nav {
+    flex-wrap: wrap;
+    gap: 0.6rem 1rem;
+    padding: 0.7rem 1rem;
+    font-size: 0.95rem;
+  }
+  .nav .brand { font-size: 1.2rem; width: 100%; }
+  .nav .spacer { display: none; }            /* wrap instead of pushing right */
+  .nav .theme-toggle { margin-left: auto; }  /* nudge toggle to the row's end */
+
+  .container { padding: 1rem; }
+  .row { flex-direction: column; gap: 0.5rem; }   /* prep/cook/servings stack */
+  .recipe-header { gap: 0.6rem; }
+  .recipe-stats { gap: 1rem; }
+  .gallery img { width: 110px; height: 110px; }
+  h1 { font-size: 1.6rem; }
+  table { font-size: 0.9rem; }
+}
+
 @media print {
   .nav, .tabs, .no-print, .drive-banner { display: none !important; }
   body { background: #fff; }
