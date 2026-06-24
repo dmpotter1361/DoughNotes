@@ -17,6 +17,9 @@ services:
       # Google Drive integration (optional). Leave blank to disable.
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
+      # Optional local AI extraction (see the ollama service / llm profile below).
+      - OLLAMA_URL=${OLLAMA_URL:-}
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-llama3.2:3b}
     volumes:
       - doughnotes-data:/data
     restart: unless-stopped
@@ -40,7 +43,20 @@ services:
       - app
     restart: unless-stopped
 
+  # Optional local AI model for recipe extraction. Enable with:
+  #   docker compose --profile llm up -d
+  # then pull a model once:
+  #   docker compose --profile llm exec ollama ollama pull llama3.2:3b
+  # and set OLLAMA_URL=http://ollama:11434 in your .env.
+  ollama:
+    image: ollama/ollama
+    profiles: ["llm"]
+    volumes:
+      - ollama-models:/root/.ollama
+    restart: unless-stopped
+
 volumes:
   doughnotes-data:
   caddy-data:
   caddy-config:
+  ollama-models:

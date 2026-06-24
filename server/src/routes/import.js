@@ -6,6 +6,7 @@ import { createWorker } from 'tesseract.js';
 import { getDocumentProxy } from 'unpdf';
 import { requireAuth } from '../auth.js';
 import { DATA_DIR } from '../db.js';
+import { llmConfigured, llmExtract } from '../llm.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const TESSDATA = path.join(__dirname, '..', 'tessdata'); // bundled eng.traineddata.gz
@@ -42,10 +43,17 @@ function recognize(buffer) {
 
 const QTY = /(\d|½|¼|¾|⅓|⅔|⅛|\bcups?\b|\btsp\b|\btbsp\b|\btablespoons?\b|\bteaspoons?\b|\boz\b|\bounces?\b|\bgrams?\b|\bml\b|\blbs?\b|\bpounds?\b|\bpinch\b|\bcloves?\b|\bsticks?\b)/i;
 
+// App/phone/social-media chrome that isn't part of the recipe.
+const JUNK = /^(\d{1,2}:\d{2}\b|\d+\s*[hdm]\b|reply\b|like\b|share\b|comment(\s+as)?\b|be sure to share|please like|view\b|\d+\s+(likes?|comments?|views?|replies)\b)/i;
+
 // Turn raw OCR text into a best-guess recipe draft. Never authoritative — the user
-// reviews and fixes everything in the editor before saving.
+// reviews and fixes everything in the editor before saving. (Used as the fallback when
+// AI extraction is off/unavailable.)
 function parseRecipe(text) {
-  const lines = text.split('\n').map((l) => l.trim()).filter(Boolean);
+  const lines = text.split('\n')
+    .map((l) => l.trim())
+    .filter(Boolean)
+    .filter((l) => !JUNK.test(l) && !/^[\W_]+$/.test(l)); // drop chrome + symbol-only junk
   if (lines.length === 0) return { title: '', ingredients: [], steps: [], rawText: text };
 
   const title = lines[0];
@@ -79,6 +87,20 @@ function parseRecipe(text) {
     steps: steps.map(stripBullet).filter(Boolean),
     rawText: text,
   };
+}
+
+// Preferred text→recipe path: use the local AI model when configured, otherwise fall
+// back to the heuristic. Any AI failure logs and falls back, so imports never break.
+async function extractRecipe(text) {
+  if (llmConfigured()) {
+    try {
+      const draft = await llmExtract(text);
+      if (draft.title || draft.ingredients.length || draft.steps.length) return draft;
+    } catch (e) {
+      console.error('AI extract failed, using heuristic:', e.message);
+    }
+  }
+  return parseRecipe(text);
 }
 
 // --- Import from a recipe URL (parses schema.org/Recipe JSON-LD) ---
@@ -170,7 +192,7 @@ router.post('/ocr', requireAuth, (req, res) => {
     if (!req.file) return res.status(400).json({ error: 'No image uploaded' });
     try {
       const text = await recognize(req.file.buffer);
-      res.json({ draft: parseRecipe(text) });
+      res.json({ draft: await extractRecipe(text) });
     } catch (e) {
       console.error('OCR error:', e.message);
       res.status(500).json({ error: 'Could not read the image. Try a clearer, well-lit photo.' });
@@ -219,7 +241,7 @@ router.post('/pdf', requireAuth, (req, res) => {
       if (!text || text.trim().length < 20) {
         return res.status(422).json({ error: 'This PDF has no readable text (it may be scanned). Try the photo importer instead.' });
       }
-      res.json({ draft: parseRecipe(text) });
+      res.json({ draft: await extractRecipe(text) });
     } catch (e) {
       console.error('PDF import error:', e.message);
       res.status(500).json({ error: 'Could not read that PDF' });
@@ -228,10 +250,10 @@ router.post('/pdf', requireAuth, (req, res) => {
 });
 
 // POST /api/import/text — parse pasted text or an uploaded .txt's contents. Does NOT save.
-router.post('/text', requireAuth, (req, res) => {
+router.post('/text', requireAuth, async (req, res) => {
   const text = (req.body?.text ?? '').toString();
   if (!text.trim()) return res.status(400).json({ error: 'No text provided' });
-  res.json({ draft: parseRecipe(text) });
+  res.json({ draft: await extractRecipe(text) });
 });
 
 // POST /api/import/json — schema.org/Recipe JSON or a direct {title,ingredients,steps}.
@@ -269,7 +291,7 @@ async function fileToDraft(buffer, mimetype, filename) {
   if (isPdf) {
     const text = await extractPdfLines(buffer);
     if (!text || text.trim().length < 20) throw new Error('No readable text (looks scanned)');
-    return parseRecipe(text);
+    return extractRecipe(text);
   }
   if (isJson) {
     let data;
@@ -287,10 +309,10 @@ async function fileToDraft(buffer, mimetype, filename) {
     throw new Error('No recipe found in JSON');
   }
   if (isImage) {
-    return parseRecipe(await recognize(buffer));
+    return extractRecipe(await recognize(buffer));
   }
   if (isText) {
-    return parseRecipe(buffer.toString('utf8'));
+    return extractRecipe(buffer.toString('utf8'));
   }
   throw new Error('Unsupported file type');
 }

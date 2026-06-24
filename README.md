@@ -72,6 +72,27 @@ domain — plain `http://` only works on `localhost`.)
 > port 3500 — fine for quick testing, but keep `COOKIE_SECURE=false` for that, and
 > don't expose it long-term (passwords travel unencrypted).
 
+### Optional: private AI recipe import
+
+Recipe imports (photos, PDFs, pasted text) use a built-in heuristic parser by default.
+For much better results on messy sources — phone screenshots of social-media posts, etc. —
+you can run a small **local AI model** via the bundled **Ollama** service. It's fully
+private (nothing leaves your server) and entirely optional; if it's off or unavailable,
+imports automatically fall back to the heuristic.
+
+```bash
+# 1. In .env:
+#      OLLAMA_URL=http://ollama:11434
+#      OLLAMA_MODEL=llama3.2:3b
+# 2. Start with the llm profile (combine with https if you use it):
+sudo docker compose --profile https --profile llm up -d --build
+# 3. One-time: pull the model
+sudo docker compose --profile llm exec ollama ollama pull llama3.2:3b
+```
+
+> Runs on CPU (a few seconds per import; a GPU is faster). If RAM is tight, use a smaller
+> model like `llama3.2:1b`. Leave `OLLAMA_URL` blank to disable AI and use the heuristic.
+
 ### Updating to a new version
 
 ```bash

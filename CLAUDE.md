@@ -45,8 +45,13 @@ No test suite yet; verify by running the API and exercising `/api/*`.
   `routes/recipes.js` (owner OR collaborator) gates content edits (PUT, cover, image
   upload/patch/delete); publish/delete/manage-collaborators stay owner-only; bake log
   owner-only. Share by email lookup; `GET /api/recipes/shared` lists shared-with-me.
-- `server/src/routes/import.js` + `server/src/tessdata/eng.traineddata.gz` — photo →
-  recipe OCR via tesseract.js (bundled language data; pre-fills editor, never saves)
+- `server/src/routes/import.js` + `server/src/tessdata/eng.traineddata.gz` — recipe import
+  hub: photo OCR (tesseract.js, bundled data), PDF (unpdf), URL (JSON-LD), .txt/paste/JSON,
+  folder/bulk `/scan`. All text funnels through `extractRecipe()` → AI if configured, else
+  the `parseRecipe` heuristic. Pre-fills editor; never auto-saves (bulk scan saves private).
+- `server/src/llm.js` — optional **local Ollama** extraction (`OLLAMA_URL`/`OLLAMA_MODEL`,
+  default `llama3.2:3b`). Off by default → heuristic fallback. Compose `ollama` service is
+  behind the `llm` profile.
 - `client/src/pages/` — route components; `client/src/components/` — shared UI
 - `client/src/api.js` — fetch wrapper; `client/src/auth.jsx` — auth context
 
