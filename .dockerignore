@@ -1,0 +1,9 @@
+**/node_modules
+**/dist
+**/data
+server/public
+**/.env
+**/*.log
+.git
+.gitignore
+*.md

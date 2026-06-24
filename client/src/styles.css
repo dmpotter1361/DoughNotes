@@ -1,0 +1,162 @@
+/* DoughNotes — warm cookbook aesthetic */
+:root {
+  --cream: #faf3e7;
+  --paper: #fffdf8;
+  --crust: #c8842a;       /* golden-brown accent */
+  --crust-dark: #a8691c;
+  --cocoa: #4a3526;       /* deep brown text */
+  --cocoa-soft: #7a6450;
+  --sage: #8a9a5b;        /* herb green */
+  --berry: #9e3b54;       /* accent / danger-ish warm */
+  --line: #e6d8c3;
+  --shadow: 0 2px 8px rgba(74, 53, 38, 0.12);
+  --radius: 10px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: 'Georgia', 'Iowan Old Style', serif;
+  background: var(--cream);
+  color: var(--cocoa);
+  line-height: 1.55;
+}
+
+h1, h2, h3 { font-weight: 700; line-height: 1.2; }
+a { color: var(--crust-dark); }
+
+/* Layout */
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 0.85rem 1.5rem;
+  background: var(--cocoa);
+  color: var(--cream);
+  box-shadow: var(--shadow);
+}
+.nav .brand {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--cream);
+  text-decoration: none;
+  margin-right: auto;
+  letter-spacing: 0.5px;
+}
+.nav .brand span { color: var(--crust); }
+.nav a { color: var(--cream); text-decoration: none; opacity: 0.9; }
+.nav a:hover { opacity: 1; text-decoration: underline; }
+.nav .spacer { margin-left: auto; }
+
+.container { max-width: 900px; margin: 0 auto; padding: 1.5rem; }
+
+/* Drive upgrade banner */
+.drive-banner {
+  background: linear-gradient(110deg, #fff6e3, #ffeccb);
+  border: 1px solid var(--crust);
+  border-radius: var(--radius);
+  padding: 0.9rem 1.1rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.drive-banner p { margin: 0; flex: 1; }
+.drive-banner strong { color: var(--crust-dark); }
+
+/* Cards */
+.card {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1.1rem 1.25rem;
+  box-shadow: var(--shadow);
+}
+.recipe-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1.1rem;
+}
+.recipe-card { text-decoration: none; color: inherit; display: block; transition: transform 0.1s; }
+.recipe-card:hover { transform: translateY(-2px); }
+.recipe-card h3 { margin: 0 0 0.3rem; color: var(--cocoa); }
+.recipe-card .meta { font-size: 0.85rem; color: var(--cocoa-soft); }
+.recipe-card img.thumb {
+  width: 100%; height: 150px; object-fit: cover;
+  border-radius: 8px; margin-bottom: 0.6rem;
+}
+
+/* Tags */
+.tags { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.5rem; }
+.tag {
+  background: var(--cream); border: 1px solid var(--line);
+  color: var(--cocoa-soft); font-size: 0.78rem;
+  padding: 0.12rem 0.55rem; border-radius: 999px;
+}
+
+/* Buttons */
+button, .btn {
+  font-family: inherit; font-size: 0.95rem; cursor: pointer;
+  background: var(--crust); color: #fff; border: none;
+  padding: 0.55rem 1.1rem; border-radius: 8px;
+  text-decoration: none; display: inline-block;
+}
+button:hover, .btn:hover { background: var(--crust-dark); }
+button.secondary, .btn.secondary {
+  background: transparent; color: var(--crust-dark);
+  border: 1px solid var(--crust);
+}
+button.secondary:hover { background: #fbe7d2; }
+button.danger { background: var(--berry); }
+button:disabled { opacity: 0.5; cursor: default; }
+
+/* Forms */
+label { display: block; font-weight: 700; margin: 0.9rem 0 0.3rem; color: var(--cocoa); }
+input, textarea, select {
+  width: 100%; font-family: inherit; font-size: 1rem;
+  padding: 0.55rem 0.7rem; border: 1px solid var(--line);
+  border-radius: 8px; background: var(--paper); color: var(--cocoa);
+}
+input:focus, textarea:focus { outline: 2px solid var(--crust); border-color: var(--crust); }
+textarea { resize: vertical; min-height: 4rem; }
+.row { display: flex; gap: 1rem; }
+.row > div { flex: 1; }
+
+.auth-box { max-width: 380px; margin: 3rem auto; }
+.error { color: var(--berry); font-weight: 700; margin: 0.6rem 0; }
+.muted { color: var(--cocoa-soft); }
+.center { text-align: center; }
+
+/* Recipe view */
+.recipe-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap; }
+.recipe-stats { display: flex; gap: 1.5rem; margin: 1rem 0; color: var(--cocoa-soft); }
+.recipe-stats b { display: block; color: var(--cocoa); font-size: 1.2rem; }
+.ingredients li { margin-bottom: 0.3rem; }
+.steps li { margin-bottom: 0.8rem; }
+.gallery { display: flex; gap: 0.6rem; flex-wrap: wrap; margin: 1rem 0; }
+.gallery img { width: 140px; height: 140px; object-fit: cover; border-radius: 8px; }
+
+/* Tabs */
+.tabs { display: flex; gap: 0.5rem; border-bottom: 2px solid var(--line); margin: 1.5rem 0 1rem; }
+.tabs button {
+  background: none; color: var(--cocoa-soft); border: none;
+  border-bottom: 3px solid transparent; border-radius: 0;
+  padding: 0.5rem 0.9rem; margin-bottom: -2px;
+}
+.tabs button.active { color: var(--crust-dark); border-bottom-color: var(--crust); font-weight: 700; }
+
+/* Table (admin) */
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 0.6rem 0.5rem; border-bottom: 1px solid var(--line); }
+th { color: var(--cocoa-soft); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+.pill { font-size: 0.75rem; padding: 0.1rem 0.5rem; border-radius: 999px; }
+.pill.published { background: #e3efd2; color: #4a5d23; }
+.pill.private { background: #f0e3d2; color: var(--cocoa-soft); }
+
+@media print {
+  .nav, .tabs, .no-print, .drive-banner { display: none !important; }
+  body { background: #fff; }
+  .card { box-shadow: none; border: none; }
+}

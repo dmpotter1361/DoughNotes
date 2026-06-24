@@ -1,28 +1,47 @@
 # DoughNotes — notes for Claude Code
 
-Self-hosted baking recipe book/tracker/journal. Browser client, Node.js/Express backend, single Docker image. Repo `dmpotter1361/DoughNotes`.
+Self-hosted multi-user recipe book / tracker / journal. React client + Node/Express
+API in one Docker image. Recipes are **private by default**; users publish to a
+community feed. Repo `dmpotter1361/DoughNotes`.
 
 ## Stack
 
-- **Client**: React 19 + Vite (in `client/`)
-- **Server**: Node.js + Express 5 (in `server/`)
-- **Deploy**: Single Docker image (multi-stage build) via `docker compose up`
-- **Image storage**: TBD — to be decided in planning
+- **Client**: React 19 + Vite (`client/`), react-router
+- **Server**: Node.js + Express 5 (`server/`), ESM
+- **DB**: SQLite via better-sqlite3 (file in `DATA_DIR`, default `server/data/`)
+- **Auth**: email + password, JWT in an httpOnly cookie (`server/src/auth.js`)
+- **Images**: local volume, 1 MB/image cap. Google Drive integration is planned
+  (schema already carries `storage`/`drive_*` columns).
+- **Port**: 3500 (a nod to 350°F)
 
 ## Run / build
 
 ```bash
-# Dev (run in separate terminals)
-cd server && npm run dev   # port 3000
-cd client && npm run dev   # port 5173, proxies /api to server
+# Dev (two terminals)
+cd server && npm run dev      # API on :3500 (needs JWT_SECRET; see .env.example)
+cd client && npm run dev      # Vite on :5173, proxies /api to :3500
 
-# Production
-docker compose up -d
+# Production (single container)
+cp .env.example .env          # set JWT_SECRET
+docker compose up -d --build  # serves app on :3500
 ```
+
+No test suite yet; verify by running the API and exercising `/api/*`.
 
 ## Layout
 
-- `client/` — React frontend (Vite)
-- `server/src/index.js` — Express entry point
-- `Dockerfile` — multi-stage build (builds client, serves from Express)
-- `docker-compose.yml` — single-service compose file
+- `server/src/index.js` — Express entry, wires middleware + routes, serves client from `public/`
+- `server/src/db.js` — SQLite connection + schema (also exports `DATA_DIR`, `UPLOADS_DIR`)
+- `server/src/auth.js` — JWT sign/verify, `attachUser` / `requireAuth` / `requireAdmin`
+- `server/src/routes/` — `auth`, `recipes`, `images`, `bakes`, `collections`, `admin`
+- `client/src/pages/` — route components; `client/src/components/` — shared UI
+- `client/src/api.js` — fetch wrapper; `client/src/auth.jsx` — auth context
+
+## Conventions / invariants
+
+- **Privacy is the core invariant**: a private recipe (and its bake log) is visible
+  only to its owner — *not even to admins*. Guard every recipe read/write by
+  `user_id` ownership or `is_published`.
+- Admins manage **accounts**, never content.
+- First registered user automatically becomes `admin`.
+- Ingredients/steps are stored as JSON arrays; tags via `recipe_tags` join table.

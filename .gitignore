@@ -3,3 +3,8 @@ dist/
 .env
 *.log
 .DS_Store
+
+# Runtime data (SQLite DB + uploaded images)
+server/data/
+# Local-only copy of the built client (the Docker image builds this itself)
+server/public/

@@ -2,6 +2,16 @@ services:
   app:
     build: .
     ports:
-      - "3000:3000"
-    env_file: .env
+      - "3500:3500"
+    environment:
+      - PORT=3500
+      - NODE_ENV=production
+      - DATA_DIR=/data
+      # Set JWT_SECRET in a .env file next to this compose file (see .env.example).
+      - JWT_SECRET=${JWT_SECRET:?set JWT_SECRET in your .env file}
+    volumes:
+      - doughnotes-data:/data
     restart: unless-stopped
+
+volumes:
+  doughnotes-data:
