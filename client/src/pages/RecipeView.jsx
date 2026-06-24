@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { api } from '../api.js';
 import { useAuth } from '../auth.jsx';
 import BakeLog from '../components/BakeLog.jsx';
+import RecipeSocial from '../components/RecipeSocial.jsx';
 
 export default function RecipeView() {
   const { id } = useParams();
@@ -81,6 +82,7 @@ export default function RecipeView() {
       )}
 
       {tab === 'recipe' ? (
+        <>
         <div className="card">
           {recipe.description && <p>{recipe.description}</p>}
 
@@ -111,6 +113,8 @@ export default function RecipeView() {
             {recipe.steps.map((s, i) => <li key={i}>{s}</li>)}
           </ol>
         </div>
+        {recipe.is_published && <RecipeSocial recipeId={id} isOwner={isOwner} />}
+        </>
       ) : (
         <BakeLog recipeId={id} />
       )}

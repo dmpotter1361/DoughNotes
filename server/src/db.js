@@ -42,6 +42,7 @@ db.exec(`
     ingredients   TEXT NOT NULL DEFAULT '[]',     -- JSON array
     steps         TEXT NOT NULL DEFAULT '[]',     -- JSON array
     is_published  INTEGER NOT NULL DEFAULT 0,
+    cover_image_id INTEGER,                        -- chosen cover photo (recipe_images.id)
     created_at    TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at    TEXT NOT NULL DEFAULT (datetime('now'))
   );
@@ -55,6 +56,7 @@ db.exec(`
     local_filename TEXT,
     drive_file_id  TEXT,
     drive_url      TEXT,
+    step_index     INTEGER,                         -- null = general photo; N = belongs to step N
     sort_order     INTEGER NOT NULL DEFAULT 0
   );
   CREATE INDEX IF NOT EXISTS idx_images_recipe ON recipe_images(recipe_id);
@@ -93,6 +95,25 @@ db.exec(`
   );
   CREATE INDEX IF NOT EXISTS idx_bakes_recipe ON bake_logs(recipe_id);
 
+  CREATE TABLE IF NOT EXISTS comments (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    recipe_id  INTEGER NOT NULL REFERENCES recipes(id) ON DELETE CASCADE,
+    user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    body       TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  CREATE INDEX IF NOT EXISTS idx_comments_recipe ON comments(recipe_id);
+
+  CREATE TABLE IF NOT EXISTS ratings (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    recipe_id  INTEGER NOT NULL REFERENCES recipes(id) ON DELETE CASCADE,
+    user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    stars      INTEGER NOT NULL,            -- 1-5
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE (recipe_id, user_id)
+  );
+  CREATE INDEX IF NOT EXISTS idx_ratings_recipe ON ratings(recipe_id);
+
   CREATE TABLE IF NOT EXISTS google_accounts (
     user_id         INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
     google_email    TEXT,
@@ -103,5 +124,15 @@ db.exec(`
     linked_at       TEXT NOT NULL DEFAULT (datetime('now'))
   );
 `);
+
+// --- Lightweight migrations: add columns to tables that predate them ---
+// (CREATE TABLE IF NOT EXISTS won't alter an existing table, so older databases
+// on already-deployed servers need these.)
+function ensureColumn(table, column, definition) {
+  const exists = db.prepare(`PRAGMA table_info(${table})`).all().some((c) => c.name === column);
+  if (!exists) db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+}
+ensureColumn('recipes', 'cover_image_id', 'INTEGER');
+ensureColumn('recipe_images', 'step_index', 'INTEGER');
 
 export default db;

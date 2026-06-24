@@ -11,6 +11,12 @@ export default function RecipeCard({ recipe }) {
         {totalMin > 0 && ` · ${totalMin} min`}
         {recipe.servings ? ` · serves ${recipe.servings}` : ''}
       </div>
+      {recipe.rating_count > 0 && (
+        <div className="meta" style={{ color: 'var(--crust)' }}>
+          {'★'.repeat(Math.round(recipe.rating_avg))}{'☆'.repeat(5 - Math.round(recipe.rating_avg))}
+          <span className="muted"> {recipe.rating_avg} ({recipe.rating_count})</span>
+        </div>
+      )}
       {recipe.description && <p className="muted" style={{ margin: '0.5rem 0 0' }}>{recipe.description.slice(0, 90)}{recipe.description.length > 90 ? '…' : ''}</p>}
       {recipe.tags?.length > 0 && (
         <div className="tags">

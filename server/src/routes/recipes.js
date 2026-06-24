@@ -8,18 +8,28 @@ const router = Router();
 // Shape a recipe row for the client, attaching images + tags.
 function hydrate(row) {
   if (!row) return null;
+  // All images are served through the proxy endpoint (local from disk, drive
+  // streamed via the owner's token) — same stable URL regardless of storage.
   const images = db
-    .prepare('SELECT id, storage, local_filename, drive_url, sort_order FROM recipe_images WHERE recipe_id = ? ORDER BY sort_order, id')
+    .prepare('SELECT id, step_index, sort_order FROM recipe_images WHERE recipe_id = ? ORDER BY sort_order, id')
     .all(row.id)
     .map((img) => ({
       id: img.id,
-      url: img.storage === 'drive' ? img.drive_url : `/api/images/${img.id}`,
+      url: `/api/images/${img.id}`,
+      step_index: img.step_index,
     }));
   const tags = db
     .prepare('SELECT t.name FROM tags t JOIN recipe_tags rt ON rt.tag_id = t.id WHERE rt.recipe_id = ? ORDER BY t.name')
     .all(row.id)
     .map((t) => t.name);
   const author = db.prepare('SELECT display_name FROM users WHERE id = ?').get(row.user_id);
+  const rating = db.prepare('SELECT AVG(stars) AS avg, COUNT(*) AS count FROM ratings WHERE recipe_id = ?').get(row.id);
+
+  // Cover: the chosen cover image if still present, else the first general photo.
+  const coverImg = images.find((i) => i.id === row.cover_image_id)
+    || images.find((i) => i.step_index === null)
+    || images[0];
+
   return {
     id: row.id,
     user_id: row.user_id,
@@ -34,7 +44,11 @@ function hydrate(row) {
     steps: parseJson(row.steps, []),
     is_published: !!row.is_published,
     images,
+    cover_image_id: row.cover_image_id ?? null,
+    cover_url: coverImg ? coverImg.url : null,
     tags,
+    rating_avg: rating.avg ? Math.round(rating.avg * 10) / 10 : 0,
+    rating_count: rating.count,
     created_at: row.created_at,
     updated_at: row.updated_at,
   };
