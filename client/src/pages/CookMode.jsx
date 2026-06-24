@@ -72,12 +72,12 @@ export default function CookMode() {
   const stepImages = recipe.images?.filter((im) => im.step_index === step) ?? [];
 
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'var(--cocoa)', color: 'var(--cream)', display: 'flex', flexDirection: 'column', zIndex: 1000 }}>
+    <div style={{ position: 'fixed', inset: 0, background: '#2a1f17', color: '#faf3e7', display: 'flex', flexDirection: 'column', zIndex: 1000 }}>
       {/* Top bar */}
       <div style={{ display: 'flex', alignItems: 'center', padding: '1rem 1.5rem', gap: '1rem' }}>
         <strong style={{ fontSize: '1.2rem' }}>{recipe.title}</strong>
         <span style={{ marginLeft: 'auto', opacity: 0.8 }}>Step {step + 1} of {steps.length}</span>
-        <button className="secondary" style={{ color: 'var(--cream)', borderColor: 'var(--cream)' }} onClick={() => navigate(`/recipes/${id}`)}>Exit</button>
+        <button className="secondary" style={{ color: '#faf3e7', borderColor: '#faf3e7' }} onClick={() => navigate(`/recipes/${id}`)}>Exit</button>
       </div>
 
       {/* Current step */}
@@ -92,16 +92,16 @@ export default function CookMode() {
 
       {/* Timer */}
       <div style={{ textAlign: 'center', padding: '0.5rem' }}>
-        <div style={{ fontSize: '2rem', fontVariantNumeric: 'tabular-nums', color: alarm ? 'var(--crust)' : 'var(--cream)' }}>
+        <div style={{ fontSize: '2rem', fontVariantNumeric: 'tabular-nums', color: alarm ? 'var(--crust)' : '#faf3e7' }}>
           {alarm ? "Time's up!" : fmt(remaining != null ? remaining : seconds)}
         </div>
         <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', flexWrap: 'wrap', marginTop: '0.5rem' }}>
-          <button className="secondary" style={{ color: 'var(--cream)', borderColor: 'var(--cream)' }} onClick={() => setRunning((r) => !r)}>
+          <button className="secondary" style={{ color: '#faf3e7', borderColor: '#faf3e7' }} onClick={() => setRunning((r) => !r)}>
             {running ? 'Pause' : 'Start'}
           </button>
-          <button className="secondary" style={{ color: 'var(--cream)', borderColor: 'var(--cream)' }} onClick={resetTimer}>Reset</button>
+          <button className="secondary" style={{ color: '#faf3e7', borderColor: '#faf3e7' }} onClick={resetTimer}>Reset</button>
           {[5, 10, 30].map((m) => (
-            <button key={m} className="secondary" style={{ color: 'var(--cream)', borderColor: 'var(--cream)' }} onClick={() => startCountdown(m)}>{m}m</button>
+            <button key={m} className="secondary" style={{ color: '#faf3e7', borderColor: '#faf3e7' }} onClick={() => startCountdown(m)}>{m}m</button>
           ))}
         </div>
       </div>

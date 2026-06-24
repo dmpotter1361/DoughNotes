@@ -2,6 +2,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth.jsx';
 import DriveBanner from './DriveBanner.jsx';
 import Logo from './Logo.jsx';
+import ThemeToggle from './ThemeToggle.jsx';
 
 export default function Layout({ children }) {
   const { user, logout } = useAuth();
@@ -23,6 +24,7 @@ export default function Layout({ children }) {
         {user && <Link to="/shopping">Shopping</Link>}
         {user?.role === 'admin' && <Link to="/admin">Admin</Link>}
         <span className="spacer" />
+        <ThemeToggle />
         {user ? (
           <>
             <Link to="/account">{user.display_name}</Link>

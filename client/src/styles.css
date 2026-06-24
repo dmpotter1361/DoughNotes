@@ -13,6 +13,21 @@
   --radius: 10px;
 }
 
+/* Dark theme — overrides the semantic palette. The nav + Cook Mode use fixed dark
+   colors (below), so flipping these here stays consistent. */
+:root[data-theme="dark"] {
+  --cream: #221913;       /* page background */
+  --paper: #2e231a;       /* card / input surface */
+  --crust: #d99a3f;
+  --crust-dark: #e7ad55;
+  --cocoa: #f1e7d7;       /* primary text (ink) */
+  --cocoa-soft: #b6a087;  /* muted text */
+  --sage: #9bb06a;
+  --berry: #d4708a;
+  --line: #463526;
+  --shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
+}
+
 * { box-sizing: border-box; }
 
 body {
@@ -27,14 +42,15 @@ h1, h2, h3 { font-weight: 700; line-height: 1.2; }
 a { color: var(--crust-dark); }
 
 /* Layout */
+/* Nav is a permanent dark bar (fixed colors) so it works in both themes. */
 .nav {
   display: flex;
   align-items: center;
   gap: 1.25rem;
   padding: 0.85rem 1.5rem;
-  background: var(--cocoa);
-  color: var(--cream);
-  box-shadow: var(--shadow);
+  background: #4a3526;
+  color: #faf3e7;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
 }
 .nav .brand {
   display: inline-flex;
@@ -42,19 +58,25 @@ a { color: var(--crust-dark); }
   gap: 0.45rem;
   font-size: 1.4rem;
   font-weight: 700;
-  color: var(--cream);
+  color: #faf3e7;
   text-decoration: none;
   letter-spacing: 0.5px;
 }
 .nav .brand span { color: var(--crust); }
-.nav a { color: var(--cream); text-decoration: none; opacity: 0.9; }
+.nav a { color: #faf3e7; text-decoration: none; opacity: 0.9; }
 .nav a:hover { opacity: 1; text-decoration: underline; }
 .nav .spacer { margin-left: auto; }
+.nav .theme-toggle {
+  background: none; border: none; cursor: pointer;
+  font-size: 1.15rem; line-height: 1; padding: 0.2rem 0.35rem; color: #faf3e7;
+}
+.nav .theme-toggle:hover { background: none; }
 
 .container { max-width: 900px; margin: 0 auto; padding: 1.5rem; }
 
-/* Drive upgrade banner */
+/* Drive upgrade banner — always a light card, so pin dark text for both themes */
 .drive-banner {
+  color: #4a3526;
   background: linear-gradient(110deg, #fff6e3, #ffeccb);
   border: 1px solid var(--crust);
   border-radius: var(--radius);
@@ -155,7 +177,7 @@ th { color: var(--cocoa-soft); font-size: 0.85rem; text-transform: uppercase; le
 
 .pill { font-size: 0.75rem; padding: 0.1rem 0.5rem; border-radius: 999px; }
 .pill.published { background: #e3efd2; color: #4a5d23; }
-.pill.private { background: #f0e3d2; color: var(--cocoa-soft); }
+.pill.private { background: #f0e3d2; color: #7a6450; }
 
 @media print {
   .nav, .tabs, .no-print, .drive-banner { display: none !important; }
