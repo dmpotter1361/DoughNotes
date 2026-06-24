@@ -55,6 +55,13 @@ right containers, waits for the app to be healthy, and pulls the AI model if nee
 ./start.sh --help          # all options
 ```
 
+Companion scripts:
+
+```bash
+./update.sh [flags]   # git pull, then rebuild + restart (passes flags to start.sh)
+./stop.sh             # stop the app (keeps all your data)
+```
+
 Prefer to drive Compose yourself? That works too:
 
 ```bash
@@ -113,9 +120,7 @@ sudo docker compose --profile llm exec ollama ollama pull llama3.2:3b
 ### Updating to a new version
 
 ```bash
-git pull
-sudo docker compose up -d --build
-#   (or, for HTTPS:  sudo docker compose --profile https up -d --build)
+./update.sh --https --ai     # pulls latest, rebuilds, restarts, health-checks
 ```
 
 ### Where your data lives
