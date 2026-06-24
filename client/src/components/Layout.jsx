@@ -1,6 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth.jsx';
 import DriveBanner from './DriveBanner.jsx';
+import Logo from './Logo.jsx';
 
 export default function Layout({ children }) {
   const { user, logout } = useAuth();
@@ -14,7 +15,7 @@ export default function Layout({ children }) {
   return (
     <>
       <nav className="nav">
-        <Link to="/" className="brand">Dough<span>Notes</span></Link>
+        <Link to="/" className="brand"><Logo size={28} />Dough<span>Notes</span></Link>
         <Link to="/">Browse</Link>
         {user && <Link to="/my">My Recipes</Link>}
         {user && <Link to="/new">New Recipe</Link>}

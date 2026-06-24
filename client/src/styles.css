@@ -37,11 +37,13 @@ a { color: var(--crust-dark); }
   box-shadow: var(--shadow);
 }
 .nav .brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
   font-size: 1.4rem;
   font-weight: 700;
   color: var(--cream);
   text-decoration: none;
-  margin-right: auto;
   letter-spacing: 0.5px;
 }
 .nav .brand span { color: var(--crust); }
