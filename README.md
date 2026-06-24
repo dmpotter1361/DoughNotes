@@ -42,6 +42,11 @@ docker compose up -d --build
 Open **http://<your-server>:3500** and register — the **first account becomes the
 admin**. (Port 3500 is a nod to 350°F. 🔥)
 
+> **Plain HTTP vs HTTPS:** out of the box this runs over plain HTTP, which is fine
+> for testing. When you put it behind HTTPS (e.g. a reverse proxy), set
+> `COOKIE_SECURE=true` in your `.env` so session cookies are sent securely — leave
+> it `false` for plain HTTP or logins won't work.
+
 ### Updating to a new version
 
 ```bash

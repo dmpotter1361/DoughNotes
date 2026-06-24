@@ -9,6 +9,9 @@ services:
       - DATA_DIR=/data
       # Set JWT_SECRET in a .env file next to this compose file (see .env.example).
       - JWT_SECRET=${JWT_SECRET:?set JWT_SECRET in your .env file}
+      # Leave false for plain HTTP. Set COOKIE_SECURE=true in .env once you put
+      # the app behind HTTPS (e.g. a reverse proxy), or logins will break over HTTP.
+      - COOKIE_SECURE=${COOKIE_SECURE:-false}
     volumes:
       - doughnotes-data:/data
     restart: unless-stopped

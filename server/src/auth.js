@@ -16,7 +16,9 @@ export function setAuthCookie(res, token) {
   res.cookie(COOKIE_NAME, token, {
     httpOnly: true,
     sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
+    // Only mark the cookie `secure` when actually served over HTTPS. Defaults to
+    // off so logins work over plain HTTP; set COOKIE_SECURE=true once TLS is in place.
+    secure: process.env.COOKIE_SECURE === 'true',
     maxAge: MAX_AGE_MS,
   });
 }
