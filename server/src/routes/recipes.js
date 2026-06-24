@@ -151,6 +151,41 @@ router.post('/', requireAuth, (req, res) => {
   res.status(201).json({ recipe: hydrate(row) });
 });
 
+// POST /api/recipes/bulk — create several recipes at once (private), e.g. from a folder
+// scan. Body: { recipes: [{ title, ingredients[], steps[], description?, ... }] }.
+router.post('/bulk', requireAuth, (req, res) => {
+  const drafts = Array.isArray(req.body?.recipes) ? req.body.recipes : [];
+  if (drafts.length === 0) return res.status(400).json({ error: 'No recipes provided' });
+  if (drafts.length > 50) return res.status(400).json({ error: 'Up to 50 recipes at a time' });
+
+  const insert = db.prepare(
+    `INSERT INTO recipes (user_id, title, slug, description, prep_min, cook_min, servings, ingredients, steps)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  );
+  const created = [];
+  const createMany = db.transaction((items) => {
+    for (const d of items) {
+      const title = (d.title ?? '').trim();
+      if (!title) continue; // skip untitled
+      const info = insert.run(
+        req.user.id,
+        title,
+        slugify(title),
+        (d.description ?? '').trim(),
+        d.prep_min || null,
+        d.cook_min || null,
+        d.servings || null,
+        JSON.stringify(cleanLines(d.ingredients)),
+        JSON.stringify(cleanLines(d.steps))
+      );
+      if (d.tags) setTags(info.lastInsertRowid, d.tags);
+      created.push(info.lastInsertRowid);
+    }
+  });
+  createMany(drafts);
+  res.status(201).json({ created: created.length, ids: created });
+});
+
 // Ownership guard — owner only (publish, delete, manage collaborators).
 function loadOwnedRecipe(req, res) {
   const row = db.prepare('SELECT * FROM recipes WHERE id = ?').get(req.params.id);

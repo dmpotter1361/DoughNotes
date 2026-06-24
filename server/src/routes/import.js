@@ -12,6 +12,7 @@ const TESSDATA = path.join(__dirname, '..', 'tessdata'); // bundled eng.trainedd
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } });
+const uploadMany = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024, files: 25 } });
 
 // One shared Tesseract worker, created lazily. Language data is read from the
 // bundled tessdata dir (no runtime download) and cached in the data volume.
@@ -253,6 +254,71 @@ router.post('/json', requireAuth, (req, res) => {
     });
   }
   res.status(422).json({ error: "Couldn't find a recipe in that JSON file." });
+});
+
+// --- Bulk / folder scan ---
+
+// Turn a single uploaded file into a draft, routing by type. Throws on failure.
+async function fileToDraft(buffer, mimetype, filename) {
+  const ext = (filename.split('.').pop() || '').toLowerCase();
+  const isPdf = mimetype === 'application/pdf' || ext === 'pdf';
+  const isImage = (mimetype || '').startsWith('image/') || ['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(ext);
+  const isJson = (mimetype || '').includes('json') || ext === 'json';
+  const isText = (mimetype || '').startsWith('text/') || ['txt', 'md', 'text'].includes(ext);
+
+  if (isPdf) {
+    const text = await extractPdfLines(buffer);
+    if (!text || text.trim().length < 20) throw new Error('No readable text (looks scanned)');
+    return parseRecipe(text);
+  }
+  if (isJson) {
+    let data;
+    try { data = JSON.parse(buffer.toString('utf8')); } catch { throw new Error('Invalid JSON'); }
+    const node = findRecipeInJson(data);
+    if (node) return recipeNodeToDraft(node);
+    if (data && typeof data === 'object' && (Array.isArray(data.ingredients) || Array.isArray(data.steps))) {
+      return {
+        title: clean(data.title || data.name || ''),
+        ingredients: (data.ingredients || []).map(clean).filter(Boolean),
+        steps: (data.steps || []).map((s) => clean(typeof s === 'string' ? s : (s.text || s.name || ''))).filter(Boolean),
+        rawText: '',
+      };
+    }
+    throw new Error('No recipe found in JSON');
+  }
+  if (isImage) {
+    return parseRecipe(await recognize(buffer));
+  }
+  if (isText) {
+    return parseRecipe(buffer.toString('utf8'));
+  }
+  throw new Error('Unsupported file type');
+}
+
+// POST /api/import/scan — process many files; return a draft + flag per file. No save.
+router.post('/scan', requireAuth, (req, res) => {
+  uploadMany.array('files', 25)(req, res, async (err) => {
+    if (err) {
+      const msg = err.code === 'LIMIT_FILE_SIZE' ? 'Each file must be 25 MB or smaller'
+        : err.code === 'LIMIT_FILE_COUNT' ? 'Up to 25 files at a time'
+        : err.message;
+      return res.status(400).json({ error: msg });
+    }
+    const files = req.files || [];
+    if (!files.length) return res.status(400).json({ error: 'No files uploaded' });
+
+    const results = [];
+    for (const f of files) {
+      try {
+        const draft = await fileToDraft(f.buffer, f.mimetype, f.originalname);
+        const looksLikeRecipe = !!(draft.title && (draft.ingredients.length || draft.steps.length));
+        results.push({ filename: f.originalname, draft, looksLikeRecipe, error: null });
+      } catch (e) {
+        results.push({ filename: f.originalname, draft: null, looksLikeRecipe: false, error: e.message });
+      }
+    }
+    res.json({ results });
+  });
 });
 
 export default router;
