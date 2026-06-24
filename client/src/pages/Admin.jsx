@@ -22,6 +22,17 @@ export default function Admin() {
     }
   }
 
+  async function resetPassword(u) {
+    if (!confirm(`Reset ${u.display_name}'s password to a new temporary one?`)) return;
+    setError('');
+    try {
+      const { temp_password } = await api.post(`/admin/users/${u.id}/reset-password`);
+      prompt(`Temporary password for ${u.display_name} — copy it and give it to them:`, temp_password);
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+
   if (error) return <p className="error">{error}</p>;
   if (!users) return <p>Loading…</p>;
 
@@ -65,10 +76,17 @@ export default function Admin() {
                         </button>
                         <button
                           className={u.is_active ? 'danger' : ''}
-                          style={{ padding: '0.25rem 0.6rem' }}
+                          style={{ padding: '0.25rem 0.6rem', marginRight: '0.4rem' }}
                           onClick={() => patch(u.id, { is_active: !u.is_active })}
                         >
                           {u.is_active ? 'Disable' : 'Enable'}
+                        </button>
+                        <button
+                          className="secondary"
+                          style={{ padding: '0.25rem 0.6rem' }}
+                          onClick={() => resetPassword(u)}
+                        >
+                          Reset password
                         </button>
                       </>
                     )}

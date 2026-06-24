@@ -67,4 +67,21 @@ router.get('/me', requireAuth, (req, res) => {
   res.json({ user: publicUser(user) });
 });
 
+// POST /api/auth/change-password — change your own password.
+router.post('/change-password', requireAuth, (req, res) => {
+  const { current_password, new_password } = req.body ?? {};
+  if (!current_password || !new_password) {
+    return res.status(400).json({ error: 'current_password and new_password are required' });
+  }
+  if (new_password.length < 8) {
+    return res.status(400).json({ error: 'New password must be at least 8 characters' });
+  }
+  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id);
+  if (!user || !bcrypt.compareSync(current_password, user.password_hash)) {
+    return res.status(403).json({ error: 'Current password is incorrect' });
+  }
+  db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(bcrypt.hashSync(new_password, 10), user.id);
+  res.json({ ok: true });
+});
+
 export default router;

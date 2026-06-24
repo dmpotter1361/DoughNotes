@@ -3,6 +3,43 @@ import { useSearchParams } from 'react-router-dom';
 import { api } from '../api.js';
 import { useAuth } from '../auth.jsx';
 
+// Change-your-own-password card.
+function ChangePassword() {
+  const [cur, setCur] = useState('');
+  const [next, setNext] = useState('');
+  const [msg, setMsg] = useState(null);
+  const [busy, setBusy] = useState(false);
+
+  async function submit(e) {
+    e.preventDefault();
+    setMsg(null);
+    setBusy(true);
+    try {
+      await api.post('/auth/change-password', { current_password: cur, new_password: next });
+      setMsg({ ok: true, text: 'Password changed.' });
+      setCur(''); setNext('');
+    } catch (err) {
+      setMsg({ ok: false, text: err.message });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="card" style={{ marginBottom: '1.2rem' }}>
+      <h2>Change password</h2>
+      <form onSubmit={submit}>
+        <label htmlFor="cur">Current password</label>
+        <input id="cur" type="password" value={cur} onChange={(e) => setCur(e.target.value)} required />
+        <label htmlFor="next">New password</label>
+        <input id="next" type="password" value={next} onChange={(e) => setNext(e.target.value)} required minLength={8} />
+        {msg && <p className={msg.ok ? 'muted' : 'error'} style={msg.ok ? { color: 'var(--sage)' } : undefined}>{msg.text}</p>}
+        <button type="submit" disabled={busy} style={{ marginTop: '0.7rem' }}>{busy ? 'Saving…' : 'Update password'}</button>
+      </form>
+    </div>
+  );
+}
+
 const DRIVE_MESSAGES = {
   connected: { kind: 'ok', text: 'Google Drive connected! Your photos now live in your Drive.' },
   denied: { kind: 'err', text: 'Drive connection was cancelled.' },
@@ -59,6 +96,9 @@ export default function Account() {
     <div>
       <h1>Account</h1>
       {msg && <p className={msg.kind === 'ok' ? 'muted' : 'error'} style={msg.kind === 'ok' ? { color: 'var(--sage)' } : undefined}>{msg.text}</p>}
+
+      <ChangePassword />
+
 
       <div className="card">
         <h2>Google Drive</h2>
