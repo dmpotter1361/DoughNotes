@@ -42,10 +42,30 @@ docker compose up -d --build
 Open **http://<your-server>:3500** and register — the **first account becomes the
 admin**. (Port 3500 is a nod to 350°F. 🔥)
 
-> **Plain HTTP vs HTTPS:** out of the box this runs over plain HTTP, which is fine
-> for testing. When you put it behind HTTPS (e.g. a reverse proxy), set
-> `COOKIE_SECURE=true` in your `.env` so session cookies are sent securely — leave
-> it `false` for plain HTTP or logins won't work.
+### HTTPS with a domain (recommended)
+
+If you have a domain pointed at the server, run it behind the built-in **Caddy**
+reverse proxy for automatic HTTPS (Let's Encrypt). In `.env` set:
+
+```bash
+DOMAIN=doughnotes.myhomegames.net
+APP_BASE_URL=https://doughnotes.myhomegames.net
+COOKIE_SECURE=true
+```
+
+Forward router ports **80 and 443** to the server, then start with the `https` profile:
+
+```bash
+docker compose --profile https up -d --build
+```
+
+Caddy fetches a certificate automatically and serves the app at
+`https://<your-domain>`. (Google Drive sign-in also **requires** HTTPS on a real
+domain — plain `http://` only works on `localhost`.)
+
+> **Plain HTTP note:** without the `https` profile the app runs over plain HTTP on
+> port 3500 — fine for quick testing, but keep `COOKIE_SECURE=false` for that, and
+> don't expose it long-term (passwords travel unencrypted).
 
 ### Updating to a new version
 

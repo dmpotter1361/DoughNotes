@@ -1,0 +1,8 @@
+# Caddy reverse proxy with automatic HTTPS (Let's Encrypt).
+# DOMAIN comes from your .env (e.g. doughnotes.myhomegames.net).
+# Requires ports 80 and 443 to be reachable from the internet.
+
+{$DOMAIN} {
+	encode gzip
+	reverse_proxy app:3500
+}
