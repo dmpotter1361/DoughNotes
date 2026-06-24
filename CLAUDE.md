@@ -39,7 +39,10 @@ No test suite yet; verify by running the API and exercising `/api/*`.
 - `server/src/index.js` — Express entry, wires middleware + routes, serves client from `public/`
 - `server/src/db.js` — SQLite connection + schema (also exports `DATA_DIR`, `UPLOADS_DIR`)
 - `server/src/auth.js` — JWT sign/verify, `attachUser` / `requireAuth` / `requireAdmin`
-- `server/src/routes/` — `auth`, `recipes`, `images`, `bakes`, `collections`, `admin`
+- `server/src/routes/` — `auth`, `recipes`, `images`, `bakes`, `collections`, `admin`,
+  `drive`, `import` (OCR)
+- `server/src/routes/import.js` + `server/src/tessdata/eng.traineddata.gz` — photo →
+  recipe OCR via tesseract.js (bundled language data; pre-fills editor, never saves)
 - `client/src/pages/` — route components; `client/src/components/` — shared UI
 - `client/src/api.js` — fetch wrapper; `client/src/auth.jsx` — auth context
 

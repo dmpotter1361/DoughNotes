@@ -18,7 +18,10 @@ export default function MyRecipes() {
     <div>
       <div className="recipe-header">
         <h1>My Recipes</h1>
-        <Link to="/new" className="btn">+ New Recipe</Link>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <Link to="/import" className="btn secondary">📷 Import from photo</Link>
+          <Link to="/new" className="btn">+ New Recipe</Link>
+        </div>
       </div>
       {recipes.length === 0 ? (
         <p className="muted">No recipes yet. <Link to="/new">Create your first one</Link> — it stays private until you publish it.</p>

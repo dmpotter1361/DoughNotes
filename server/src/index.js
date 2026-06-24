@@ -15,6 +15,7 @@ import bakeRoutes from './routes/bakes.js';
 import collectionRoutes from './routes/collections.js';
 import adminRoutes from './routes/admin.js';
 import driveRoutes from './routes/drive.js';
+import importRoutes from './routes/import.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -34,6 +35,7 @@ app.use('/api', bakeRoutes);        // /api/recipes/:id/bakes, /api/bakes/:id
 app.use('/api', collectionRoutes);  // /api/tags, /api/collections...
 app.use('/api/admin', adminRoutes);
 app.use('/api/drive', driveRoutes); // /api/drive/connect, callback, status, export...
+app.use('/api/import', importRoutes); // /api/import/ocr
 
 // --- Serve frontend (production / Docker) ---
 const publicDir = path.join(__dirname, '..', 'public');

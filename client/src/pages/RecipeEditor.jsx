@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { api } from '../api.js';
 
 const blank = {
@@ -11,11 +11,21 @@ const blank = {
 const toLines = (arr) => (arr || []).join('\n');
 const fromLines = (text) => text.split('\n').map((s) => s.trim()).filter(Boolean);
 
+// A draft handed over from the photo importer (router state) pre-fills a new recipe.
+const draftToForm = (d) => ({
+  ...blank,
+  title: d.title || '',
+  ingredients: toLines(d.ingredients),
+  steps: toLines(d.steps),
+});
+
 export default function RecipeEditor() {
   const { id } = useParams();
   const editing = Boolean(id);
   const navigate = useNavigate();
-  const [form, setForm] = useState(blank);
+  const location = useLocation();
+  const importedDraft = location.state?.draft;
+  const [form, setForm] = useState(() => (importedDraft ? draftToForm(importedDraft) : blank));
   const [images, setImages] = useState([]);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);

@@ -18,6 +18,8 @@ in a single Docker container.
   unlimited storage + recipe-book PDF export — *coming soon*)
 - **Accounts & roles** — email/password login; the first account is the admin and
   manages users (admins manage *accounts*, never your private recipes)
+- **Import from a photo** — snap a handwritten or printed recipe card; on-device
+  OCR (tesseract.js) reads it and pre-fills the editor for you to tidy up
 - **Print-friendly** — clean print/PDF view of any recipe
 
 ## Run it on your server (from GitHub)
