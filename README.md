@@ -27,6 +27,9 @@ in a single Docker container.
 Prerequisites: a machine with [Docker](https://docs.docker.com/get-docker/) and
 [Git](https://git-scm.com/) (Docker Compose ships with Docker today).
 
+> The `docker` commands below use `sudo`, which is needed on most Linux servers.
+> If you've added your user to the `docker` group, you can drop the `sudo`.
+
 ```bash
 # 1. Get the code
 git clone https://github.com/dmpotter1361/DoughNotes.git
@@ -38,7 +41,7 @@ cp .env.example .env
 #   openssl rand -hex 32
 
 # 3. Build and start (runs in the background)
-docker compose up -d --build
+sudo docker compose up -d --build
 ```
 
 Open **http://<your-server>:3500** and register — the **first account becomes the
@@ -58,7 +61,7 @@ COOKIE_SECURE=true
 Forward router ports **80 and 443** to the server, then start with the `https` profile:
 
 ```bash
-docker compose --profile https up -d --build
+sudo docker compose --profile https up -d --build
 ```
 
 Caddy fetches a certificate automatically and serves the app at
@@ -73,7 +76,8 @@ domain — plain `http://` only works on `localhost`.)
 
 ```bash
 git pull
-docker compose up -d --build
+sudo docker compose up -d --build
+#   (or, for HTTPS:  sudo docker compose --profile https up -d --build)
 ```
 
 ### Where your data lives
@@ -83,16 +87,17 @@ Everything (the SQLite database + uploaded images) is stored in the
 
 ```bash
 # Back it up
-docker run --rm -v doughnotes-data:/data -v "$PWD":/backup busybox \
+sudo docker run --rm -v doughnotes-data:/data -v "$PWD":/backup busybox \
   tar czf /backup/doughnotes-backup.tar.gz -C /data .
 ```
 
 ### Common commands
 
 ```bash
-docker compose logs -f      # watch logs
-docker compose down         # stop (data is kept in the volume)
-docker compose restart      # restart
+sudo docker compose ps              # what's running
+sudo docker compose logs -f         # watch logs (add a service name, e.g. caddy)
+sudo docker compose down            # stop (data is kept in the volume)
+sudo docker compose restart         # restart
 ```
 
 ## Develop locally
