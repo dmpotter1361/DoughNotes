@@ -52,12 +52,17 @@ router.post('/shopping', requireAuth, (req, res) => {
   const end = new Date(start + 'T00:00:00Z');
   end.setUTCDate(end.getUTCDate() + 6);
   const endStr = end.toISOString().slice(0, 10);
-  const recipeIds = db
-    .prepare('SELECT DISTINCT recipe_id FROM meal_plan WHERE user_id = ? AND plan_date BETWEEN ? AND ?')
-    .all(req.user.id, start, endStr)
-    .map((r) => r.recipe_id);
-  const added = addLabels(req.user.id, ingredientsFromRecipes(req.user.id, recipeIds));
-  res.json({ added, recipes: recipeIds.length });
+  // Count how many times each recipe is planned this week so a recipe scheduled on
+  // multiple days contributes that many servings' worth of ingredients (they get summed).
+  const counts = db
+    .prepare('SELECT recipe_id, COUNT(*) AS n FROM meal_plan WHERE user_id = ? AND plan_date BETWEEN ? AND ? GROUP BY recipe_id')
+    .all(req.user.id, start, endStr);
+  const expandedIds = [];
+  for (const { recipe_id, n } of counts) {
+    for (let i = 0; i < n; i++) expandedIds.push(recipe_id);
+  }
+  const added = addLabels(req.user.id, ingredientsFromRecipes(req.user.id, expandedIds));
+  res.json({ added, recipes: counts.length });
 });
 
 export default router;
