@@ -6,7 +6,7 @@ import { createWorker } from 'tesseract.js';
 import { getDocumentProxy } from 'unpdf';
 import { requireAuth } from '../auth.js';
 import { DATA_DIR } from '../db.js';
-import { llmConfigured, llmExtract, llmProvider } from '../llm.js';
+import { llmConfigured, llmExtract, llmExtractImage, llmProvider } from '../llm.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const TESSDATA = path.join(__dirname, '..', 'tessdata'); // bundled eng.traineddata.gz
@@ -194,6 +194,18 @@ router.post('/ocr', requireAuth, (req, res) => {
     }
     if (!req.file) return res.status(400).json({ error: 'No image uploaded' });
     try {
+      // Prefer Gemini vision (reads the image directly — far fewer hallucinations than
+      // OCR→text, and offloads the slow tesseract step). Fall back to OCR on any failure.
+      if (llmProvider() === 'gemini') {
+        try {
+          const draft = await llmExtractImage(req.file.buffer, req.file.mimetype);
+          if (draft.title || draft.ingredients.length || draft.steps.length) {
+            return res.json({ draft });
+          }
+        } catch (e) {
+          console.error('Vision extract failed, using OCR:', e.message);
+        }
+      }
       const text = await recognize(req.file.buffer);
       res.json({ draft: await extractRecipe(text) });
     } catch (e) {

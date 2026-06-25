@@ -107,10 +107,12 @@ backend. It's optional; if it's off or fails, imports fall back to the heuristic
 # Get a free key: https://aistudio.google.com/apikey
 # In .env:
 #   GEMINI_API_KEY=your-key
-#   GEMINI_MODEL=gemini-2.0-flash
+#   GEMINI_MODEL=gemini-2.5-flash-lite       # text imports
+#   GEMINI_VISION_MODEL=gemini-2.5-flash     # photo imports (reads the image directly)
 ./start.sh --https --ai     # no extra container needed
 ```
-Recipe text is sent to Google for extraction.
+Recipe text/photos are sent to Google for extraction. Photo imports use the vision model
+to read the image directly (more accurate than OCR→text, and no server RAM needed).
 
 **B) Ollama (local, fully private) — needs ~4 GB+ RAM:**
 ```bash
