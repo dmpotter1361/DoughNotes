@@ -125,8 +125,13 @@ button, .btn {
   background: var(--crust); color: #fff; border: none;
   padding: 0.55rem 1.1rem; border-radius: 8px;
   text-decoration: none; display: inline-block;
+  /* Stop a text caret/selection from flashing when a button is clicked. */
+  user-select: none; -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 button:hover, .btn:hover { background: var(--crust-dark); }
+button:focus { outline: none; }
+button:focus-visible, .btn:focus-visible { outline: 2px solid var(--crust); outline-offset: 2px; }
 button.secondary, .btn.secondary {
   background: transparent; color: var(--crust-dark);
   border: 1px solid var(--crust);
@@ -134,6 +139,14 @@ button.secondary, .btn.secondary {
 button.secondary:hover { background: #fbe7d2; }
 button.danger { background: var(--berry); }
 button:disabled { opacity: 0.5; cursor: default; }
+
+/* Visually hidden but still focusable/interactive — used to wrap file inputs in
+   labels (display:none breaks the label→input tap on iOS Safari). */
+.visually-hidden {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
 
 /* Forms */
 label { display: block; font-weight: 700; margin: 0.9rem 0 0.3rem; color: var(--cocoa); }
@@ -189,11 +202,17 @@ th { color: var(--cocoa-soft); font-size: 0.85rem; text-transform: uppercase; le
   display: flex;
   align-items: center;
   gap: 0.9rem;
-  transition: transform 0.1s, border-color 0.1s;
+  cursor: pointer;
+  border: 1px solid var(--crust);
+  background: linear-gradient(0deg, rgba(200, 132, 42, 0.06), rgba(200, 132, 42, 0.06)), var(--paper);
+  transition: transform 0.1s, border-color 0.1s, box-shadow 0.1s, background 0.1s;
 }
-.import-option:hover { transform: translateY(-2px); border-color: var(--crust); }
+.import-option:hover { transform: translateY(-2px); border-color: var(--crust-dark); box-shadow: var(--shadow); }
+.import-option:active { transform: translateY(0); background: #fbe7d2; }
 .import-option .icon { font-size: 2rem; line-height: 1; }
 .import-option p { margin: 0.2rem 0 0; font-size: 0.9rem; }
+/* "Choose ›" affordance so the tile clearly reads as tappable */
+.import-option .pick { margin-left: auto; color: var(--crust-dark); font-weight: 700; white-space: nowrap; }
 
 /* Mobile polish */
 @media (max-width: 600px) {
@@ -217,7 +236,13 @@ th { color: var(--cocoa-soft); font-size: 0.85rem; text-transform: uppercase; le
 }
 
 @media print {
+  @page { margin: 14mm; }
   .nav, .tabs, .no-print, .drive-banner { display: none !important; }
   body { background: #fff; }
-  .card { box-shadow: none; border: none; }
+  .card { box-shadow: none; border: none; break-inside: auto; }
+  /* Keep the title with the start of the recipe so a cover-less recipe doesn't
+     strand the title alone on page 1. */
+  .recipe-header { break-inside: avoid; }
+  .recipe-header h1 { break-after: avoid-page; }
+  .recipe-header img { break-inside: avoid; }
 }
