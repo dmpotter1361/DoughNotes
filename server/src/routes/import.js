@@ -13,6 +13,9 @@ const TESSDATA = path.join(__dirname, '..', 'tessdata'); // bundled eng.trainedd
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } });
+
+// GET /api/import/config — tells the UI whether AI extraction is active.
+router.get('/config', (_req, res) => res.json({ ai: llmConfigured() }));
 const uploadMany = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024, files: 25 } });
 
 // One shared Tesseract worker, created lazily. Language data is read from the

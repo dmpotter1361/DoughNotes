@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api.js';
 
@@ -14,6 +14,12 @@ export default function Import() {
   const [scanning, setScanning] = useState(false);
   const [results, setResults] = useState(null);   // [{ filename, draft, looksLikeRecipe, error, selected }]
   const [importing, setImporting] = useState(false);
+  // Whether local AI extraction is active (affects which engine reads recipes).
+  const [aiOn, setAiOn] = useState(false);
+  useEffect(() => { api.get('/import/config').then((d) => setAiOn(!!d.ai)).catch(() => {}); }, []);
+
+  // Label shown while an AI-eligible source is processing.
+  const reading = aiOn ? 'Reading with AI…' : 'Reading…';
 
   function toEditor(draft) {
     navigate('/new', { state: { draft } });
@@ -119,13 +125,13 @@ export default function Import() {
     }
   }
 
-  const FileOption = ({ icon, title, desc, accept, capture, onChange, label }) => (
+  const FileOption = ({ icon, title, desc, accept, capture, onChange, label, ai }) => (
     <label className="card import-option" style={{ cursor: 'pointer' }}>
       <input type="file" accept={accept} capture={capture} onChange={onChange} style={{ display: 'none' }} disabled={!!busy} />
       <div className="icon">{icon}</div>
       <div>
         <strong>{title}</strong>
-        <p className="muted">{busy === label ? 'Working…' : desc}</p>
+        <p className="muted">{busy === label ? (ai ? reading : 'Reading…') : desc}</p>
       </div>
     </label>
   );
@@ -134,14 +140,19 @@ export default function Import() {
     <div>
       <h1>Import a recipe</h1>
       <p className="muted">Bring a recipe in from a photo, file, link, or pasted text — we'll pre-fill the editor so you can tidy it up before saving.</p>
+      <p style={{ fontSize: '0.9rem', color: aiOn ? 'var(--sage)' : 'var(--cocoa-soft)' }}>
+        {aiOn
+          ? '✨ AI-assisted import is on — a local model reads messy photos/text (private, on your server).'
+          : 'ℹ️ Using the built-in parser. Photo/PDF/text quality varies; an admin can enable local AI for better results.'}
+      </p>
       {error && <p className="error">{error}</p>}
 
       <div className="import-grid">
-        <FileOption icon="📷" title="Photo" label="photo" desc="Snap or upload a recipe card (reads the text)"
+        <FileOption icon="📷" title="Photo" label="photo" ai desc="Snap or upload a recipe card (reads the text)"
           accept="image/*" capture="environment" onChange={onPhoto} />
-        <FileOption icon="📄" title="PDF" label="pdf" desc="Upload a recipe PDF (text-based)"
+        <FileOption icon="📄" title="PDF" label="pdf" ai desc="Upload a recipe PDF (text-based)"
           accept="application/pdf" onChange={onPdf} />
-        <FileOption icon="📝" title="Text file" label="txt" desc="Upload a .txt recipe"
+        <FileOption icon="📝" title="Text file" label="txt" ai desc="Upload a .txt recipe"
           accept=".txt,text/plain" onChange={onTxt} />
         <FileOption icon="🧾" title="Recipe JSON" label="json" desc="A schema.org or exported recipe file"
           accept=".json,application/json" onChange={onJson} />
@@ -159,7 +170,7 @@ export default function Import() {
         <h2 style={{ marginTop: 0 }}>📋 Paste text</h2>
         <form onSubmit={onPaste}>
           <textarea rows="6" placeholder={'Paste a recipe here…\n\nGrandma\'s Pancakes\nIngredients\n2 cups flour\n…'} value={pasted} onChange={(e) => setPasted(e.target.value)} />
-          <button type="submit" disabled={!!busy} style={{ marginTop: '0.5rem' }}>{busy === 'paste' ? 'Importing…' : 'Import pasted text'}</button>
+          <button type="submit" disabled={!!busy} style={{ marginTop: '0.5rem' }}>{busy === 'paste' ? reading : 'Import pasted text'}</button>
         </form>
       </div>
 
@@ -179,7 +190,7 @@ export default function Import() {
             <input type="file" webkitdirectory="" directory="" multiple style={{ display: 'none' }} onChange={onFolder} disabled={scanning || importing} />
           </label>
         </div>
-        {scanning && <p style={{ marginTop: '0.8rem' }}>🔎 Scanning… (images take a few seconds each)</p>}
+        {scanning && <p style={{ marginTop: '0.8rem' }}>🔎 {aiOn ? 'Reading with AI' : 'Scanning'}… (images take a few seconds each{aiOn ? ', AI adds time' : ''})</p>}
 
         {results && (
           <div style={{ marginTop: '1rem' }}>
