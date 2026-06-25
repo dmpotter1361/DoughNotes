@@ -74,6 +74,20 @@ export function prettyFrac(n) {
 function prettyDec(n) {
   return String(Math.round(n * 100) / 100);
 }
+// Fraction renderer accurate to 1/16 (for tiny amounts like a pinch = 1/16 tsp).
+function prettyFrac16(n) {
+  const gcd = (a, b) => (b ? gcd(b, a % b) : a);
+  const sixteenths = Math.round(n * 16);
+  if (sixteenths === 0) return '0';
+  const whole = Math.floor(sixteenths / 16);
+  let rem = sixteenths - whole * 16;
+  if (rem === 0) return String(whole);
+  const g = gcd(rem, 16);
+  const num = rem / g, den = 16 / g;
+  const glyphs = { '1/2': '½', '1/4': '¼', '3/4': '¾', '1/8': '⅛', '3/8': '⅜', '5/8': '⅝', '7/8': '⅞' };
+  const frac = glyphs[`${num}/${den}`] || `${num}/${den}`;
+  return whole > 0 ? `${whole} ${frac}` : frac;
+}
 
 // Parse a leading quantity from `s`; returns { value, len } or null. Ranges take the high end.
 function leadingQuantity(s) {
@@ -174,7 +188,11 @@ export function formatLabel({ qty, unit, display }) {
   }
   // count (with or without a count word)
   const word = unit ? plural(unit, qty) + ' ' : '';
-  return `${prettyFrac(qty)} ${word}${display}`.replace(/\s+/g, ' ').trim();
+  // pinch ≈ 1/16 tsp, dash ≈ 1/8 tsp — annotate so the amount is "made known".
+  const PINCH_TSP = { pinch: 1 / 16, dash: 1 / 8 };
+  const tsp = PINCH_TSP[unit] != null ? PINCH_TSP[unit] * qty : null;
+  const hint = tsp != null ? ` (≈ ${prettyFrac16(tsp)} tsp)` : '';
+  return `${prettyFrac(qty)} ${word}${display}${hint}`.replace(/\s+/g, ' ').trim();
 }
 
 // --- Store-section categorization (soft grouping; "Other" catches the rest) ---

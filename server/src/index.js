@@ -19,6 +19,7 @@ import importRoutes from './routes/import.js';
 import socialRoutes from './routes/social.js';
 import shoppingRoutes from './routes/shopping.js';
 import plannerRoutes from './routes/planner.js';
+import cookbookRoutes from './routes/cookbook.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -42,6 +43,7 @@ app.use('/api/import', importRoutes); // /api/import/ocr
 app.use('/api', socialRoutes);        // /api/recipes/:id/comments, /rating, /api/comments/:id
 app.use('/api/shopping', shoppingRoutes);
 app.use('/api/planner', plannerRoutes);
+app.use('/api', cookbookRoutes);      // /api/cookbook.pdf
 
 // --- Serve frontend (production / Docker) ---
 const publicDir = path.join(__dirname, '..', 'public');

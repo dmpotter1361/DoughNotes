@@ -5,8 +5,42 @@ const COCOA = '#4a3526';
 const CRUST = '#a8691c';
 const SOFT = '#7a6450';
 
+// Tiny seeded PRNG so a given `seed` always draws the same cover art.
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// Draw a decorative cover page (double border + seeded scattered motif + title).
+function drawCover(doc, { title, subtitle, seed }) {
+  const W = doc.page.width;
+  const H = doc.page.height;
+  const rng = mulberry32(Math.floor(seed) || 1);
+  doc.save();
+  // double frame
+  doc.lineWidth(3).strokeColor(CRUST).rect(30, 30, W - 60, H - 60).stroke();
+  doc.lineWidth(1).strokeColor(SOFT).rect(40, 40, W - 80, H - 80).stroke();
+  // seeded "confetti" of small dough crumbs near the top and bottom bands
+  doc.fillColor(CRUST);
+  for (let i = 0; i < 22; i++) {
+    const x = 60 + rng() * (W - 120);
+    const y = rng() < 0.5 ? 70 + rng() * 70 : H - 150 + rng() * 80;
+    doc.circle(x, y, 1.5 + rng() * 3).fill();
+  }
+  // title block, roughly centered
+  const ty = H / 2 - 90;
+  doc.fillColor(COCOA).font('Times-Bold').fontSize(40).text(title, 60, ty, { width: W - 120, align: 'center' });
+  doc.moveDown(0.6).fillColor(SOFT).font('Times-Italic').fontSize(14).text(subtitle, { width: W - 120, align: 'center' });
+  doc.restore();
+}
+
 // Render one or more recipes into a recipe-book PDF. Returns a Promise<Buffer>.
-export function buildRecipeBook({ title, recipes }) {
+// `subtitle` and `seed` are optional (seed makes the cover art deterministic).
+export function buildRecipeBook({ title, subtitle, recipes, seed }) {
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ size: 'A4', margin: 56 });
     const chunks = [];
@@ -14,11 +48,11 @@ export function buildRecipeBook({ title, recipes }) {
     doc.on('end', () => resolve(Buffer.concat(chunks)));
     doc.on('error', reject);
 
-    // Cover
-    doc.fillColor(CRUST).fontSize(34).font('Times-Bold').text(title, { align: 'center' });
-    doc.moveDown(0.3);
-    doc.fillColor(SOFT).fontSize(13).font('Times-Italic')
-      .text(`${recipes.length} recipe${recipes.length === 1 ? '' : 's'} · DoughNotes`, { align: 'center' });
+    drawCover(doc, {
+      title,
+      subtitle: subtitle || `${recipes.length} recipe${recipes.length === 1 ? '' : 's'} · DoughNotes`,
+      seed,
+    });
 
     recipes.forEach((r, i) => {
       doc.addPage();
