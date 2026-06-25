@@ -20,7 +20,7 @@ services:
       # Optional AI extraction. Gemini (hosted) needs no extra service; Ollama (local)
       # uses the llm-profile service below.
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
-      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.0-flash}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-flash-lite}
       - OLLAMA_URL=${OLLAMA_URL:-}
       - OLLAMA_MODEL=${OLLAMA_MODEL:-llama3.2:3b}
     volumes:
