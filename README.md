@@ -96,26 +96,31 @@ domain — plain `http://` only works on `localhost`.)
 > port 3500 — fine for quick testing, but keep `COOKIE_SECURE=false` for that, and
 > don't expose it long-term (passwords travel unencrypted).
 
-### Optional: private AI recipe import
+### Optional: AI recipe import
 
-Recipe imports (photos, PDFs, pasted text) use a built-in heuristic parser by default.
-For much better results on messy sources — phone screenshots of social-media posts, etc. —
-you can run a small **local AI model** via the bundled **Ollama** service. It's fully
-private (nothing leaves your server) and entirely optional; if it's off or unavailable,
-imports automatically fall back to the heuristic.
+Imports (photos, PDFs, pasted text) use a built-in heuristic parser by default. For much
+better results on messy sources — phone screenshots of social posts, etc. — enable an AI
+backend. It's optional; if it's off or fails, imports fall back to the heuristic. Pick one:
 
+**A) Gemini (hosted, free) — recommended for small servers (uses ~no RAM):**
 ```bash
-# 1. In .env:
-#      OLLAMA_URL=http://ollama:11434
-#      OLLAMA_MODEL=llama3.2:3b
-# 2. Start with the llm profile (combine with https if you use it):
-sudo docker compose --profile https --profile llm up -d --build
-# 3. One-time: pull the model
-sudo docker compose --profile llm exec ollama ollama pull llama3.2:3b
+# Get a free key: https://aistudio.google.com/apikey
+# In .env:
+#   GEMINI_API_KEY=your-key
+#   GEMINI_MODEL=gemini-2.0-flash
+./start.sh --https --ai     # no extra container needed
 ```
+Recipe text is sent to Google for extraction.
 
-> Runs on CPU (a few seconds per import; a GPU is faster). If RAM is tight, use a smaller
-> model like `llama3.2:1b`. Leave `OLLAMA_URL` blank to disable AI and use the heuristic.
+**B) Ollama (local, fully private) — needs ~4 GB+ RAM:**
+```bash
+# In .env:  OLLAMA_URL=http://ollama:11434   (GEMINI_API_KEY blank)
+./start.sh --https --ai     # starts the bundled ollama service + pulls the model
+```
+Runs on CPU (slow; a GPU is faster). A 3B model needs ~2 GB just to load, so it won't fit
+on a 2 GB box — use Gemini there, or a smaller model like `llama3.2:1b` with more RAM.
+
+> Leave both `GEMINI_API_KEY` and `OLLAMA_URL` blank to disable AI (heuristic only).
 
 ### Updating to a new version
 

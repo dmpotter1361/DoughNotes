@@ -90,16 +90,18 @@ else
 fi
 
 DOMAIN="$(getenv DOMAIN)"
+GEMINI_KEY="$(getenv GEMINI_API_KEY)"
 OLLAMA_URL="$(getenv OLLAMA_URL)"
 OLLAMA_MODEL="$(getenv OLLAMA_MODEL)"; [ -n "$OLLAMA_MODEL" ] || OLLAMA_MODEL="llama3.2:3b"
+USE_OLLAMA=0
 
 # ---- decide mode + AI (flags > .env > prompt) --------------------------------
 [ -n "$MODE" ] || { [ -n "$DOMAIN" ] && MODE="https" || MODE="http"; }
-[ -n "$AI" ]   || { [ -n "$OLLAMA_URL" ] && AI="yes" || AI="no"; }
+[ -n "$AI" ]   || { { [ -n "$GEMINI_KEY" ] || [ -n "$OLLAMA_URL" ]; } && AI="yes" || AI="no"; }
 
 if [ "$ASSUME_YES" -eq 0 ] && [ -t 0 ]; then
   read -r -p "$(printf "${B}Mode${N} [http/https] (%s): " "$MODE")" a; [ -n "$a" ] && MODE="$a"
-  read -r -p "$(printf "${B}AI extraction (Ollama)?${N} [y/N] (%s): " "$AI")" a
+  read -r -p "$(printf "${B}AI extraction?${N} [y/N] (%s): " "$AI")" a
   case "$a" in y|Y|yes) AI="yes" ;; n|N|no) AI="no" ;; esac
 fi
 [ "$MODE" = "http" ] || [ "$MODE" = "https" ] || die "Mode must be http or https."
@@ -118,13 +120,19 @@ else
 fi
 
 if [ "$AI" = "yes" ]; then
-  PROFILES="$PROFILES --profile llm"
-  if [ -z "$OLLAMA_URL" ]; then
-    setenv OLLAMA_URL "http://ollama:11434"
-    ok "Set OLLAMA_URL=http://ollama:11434 in .env."
-    OLLAMA_URL="http://ollama:11434"
+  if [ -n "$GEMINI_KEY" ]; then
+    ok "AI extraction on (Gemini, hosted — no extra container, ~no RAM)."
+  else
+    USE_OLLAMA=1
+    PROFILES="$PROFILES --profile llm"
+    if [ -z "$OLLAMA_URL" ]; then
+      setenv OLLAMA_URL "http://ollama:11434"
+      ok "Set OLLAMA_URL=http://ollama:11434 in .env."
+      OLLAMA_URL="http://ollama:11434"
+    fi
+    ok "AI extraction on (local Ollama, model: ${OLLAMA_MODEL})."
+    warn "Local models need ~4 GB+ RAM. On a small box, prefer Gemini (set GEMINI_API_KEY)."
   fi
-  ok "AI extraction on (model: ${OLLAMA_MODEL})."
 else
   info "AI extraction off — imports use the built-in heuristic parser."
 fi
@@ -150,8 +158,8 @@ if [ "$healthy" -eq 1 ]; then ok "App is responding on :3500."; else
   warn "App didn't answer /api/health in ~60s. Check: $DC logs app --tail 50"
 fi
 
-# ---- AI model: ensure it's present ------------------------------------------
-if [ "$AI" = "yes" ]; then
+# ---- AI model: ensure it's present (local Ollama only) ----------------------
+if [ "$USE_OLLAMA" -eq 1 ]; then
   step "Checking the AI model"
   info "Waiting for the Ollama service…"
   oll=0
@@ -181,6 +189,7 @@ if [ "$MODE" = "https" ]; then
 else
   printf "  Open: ${B}http://localhost:3500${N}  (or http://<server-ip>:3500)\n"
 fi
-[ "$AI" = "yes" ] && info "AI import is on. First import after start is slower while the model loads."
+if [ "$USE_OLLAMA" -eq 1 ]; then info "AI import on (local). First import after start is slower while the model loads."
+elif [ "$AI" = "yes" ]; then info "AI import on (Gemini, hosted)."; fi
 info "Logs:  $DC $PROFILES logs -f app"
 info "Stop:  $DC $PROFILES down"

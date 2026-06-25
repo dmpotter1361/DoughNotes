@@ -14,9 +14,13 @@ export default function Import() {
   const [scanning, setScanning] = useState(false);
   const [results, setResults] = useState(null);   // [{ filename, draft, looksLikeRecipe, error, selected }]
   const [importing, setImporting] = useState(false);
-  // Whether local AI extraction is active (affects which engine reads recipes).
+  // Whether AI extraction is active (and which backend) — affects the labels/badge.
   const [aiOn, setAiOn] = useState(false);
-  useEffect(() => { api.get('/import/config').then((d) => setAiOn(!!d.ai)).catch(() => {}); }, []);
+  const [provider, setProvider] = useState(null);
+  useEffect(() => {
+    api.get('/import/config').then((d) => { setAiOn(!!d.ai); setProvider(d.provider); }).catch(() => {});
+  }, []);
+  const providerLabel = provider === 'gemini' ? 'Gemini' : provider === 'ollama' ? 'local AI' : 'AI';
 
   // Label shown while an AI-eligible source is processing.
   const reading = aiOn ? 'Reading with AI…' : 'Reading…';
@@ -142,8 +146,8 @@ export default function Import() {
       <p className="muted">Bring a recipe in from a photo, file, link, or pasted text — we'll pre-fill the editor so you can tidy it up before saving.</p>
       <p style={{ fontSize: '0.9rem', color: aiOn ? 'var(--sage)' : 'var(--cocoa-soft)' }}>
         {aiOn
-          ? '✨ AI-assisted import is on — a local model reads messy photos/text (private, on your server).'
-          : 'ℹ️ Using the built-in parser. Photo/PDF/text quality varies; an admin can enable local AI for better results.'}
+          ? `✨ AI-assisted import is on (${providerLabel}) — it cleans up messy photos and text for you.`
+          : 'ℹ️ Using the built-in parser. Photo/PDF/text quality varies; an admin can enable AI for better results.'}
       </p>
       {error && <p className="error">{error}</p>}
 
