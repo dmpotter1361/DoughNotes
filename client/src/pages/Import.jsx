@@ -129,14 +129,15 @@ export default function Import() {
     }
   }
 
-  const FileOption = ({ icon, title, desc, accept, capture, onChange, label, ai }) => (
-    <label className="card import-option" style={{ cursor: 'pointer' }}>
-      <input type="file" accept={accept} capture={capture} onChange={onChange} style={{ display: 'none' }} disabled={!!busy} />
+  const FileOption = ({ icon, title, desc, accept, onChange, label, ai }) => (
+    <label className="card import-option">
+      <input type="file" accept={accept} onChange={onChange} className="visually-hidden" disabled={!!busy} />
       <div className="icon">{icon}</div>
       <div>
         <strong>{title}</strong>
         <p className="muted">{busy === label ? (ai ? reading : 'Reading…') : desc}</p>
       </div>
+      <span className="pick">Choose ›</span>
     </label>
   );
 
@@ -153,7 +154,7 @@ export default function Import() {
 
       <div className="import-grid">
         <FileOption icon="📷" title="Photo" label="photo" ai desc="Snap or upload a recipe card (reads the text)"
-          accept="image/*" capture="environment" onChange={onPhoto} />
+          accept="image/*" onChange={onPhoto} />
         <FileOption icon="📄" title="PDF" label="pdf" ai desc="Upload a recipe PDF (text-based)"
           accept="application/pdf" onChange={onPdf} />
         <FileOption icon="📝" title="Text file" label="txt" ai desc="Upload a .txt recipe"
@@ -187,11 +188,11 @@ export default function Import() {
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
           <label className="btn secondary" style={{ cursor: 'pointer' }}>
             Choose files / photos
-            <input type="file" multiple accept="image/*,application/pdf,.txt,.json" style={{ display: 'none' }} onChange={onFolder} disabled={scanning || importing} />
+            <input type="file" multiple accept="image/*,application/pdf,.txt,text/plain,.json,application/json" className="visually-hidden" onChange={onFolder} disabled={scanning || importing} />
           </label>
           <label className="btn secondary" style={{ cursor: 'pointer' }}>
             Choose a folder
-            <input type="file" webkitdirectory="" directory="" multiple style={{ display: 'none' }} onChange={onFolder} disabled={scanning || importing} />
+            <input type="file" webkitdirectory="" directory="" multiple className="visually-hidden" onChange={onFolder} disabled={scanning || importing} />
           </label>
         </div>
         {scanning && <p style={{ marginTop: '0.8rem' }}>🔎 {aiOn ? 'Reading with AI' : 'Scanning'}… (images take a few seconds each{aiOn ? ', AI adds time' : ''})</p>}

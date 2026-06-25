@@ -41,6 +41,25 @@ export default function ShoppingList() {
 
   const checkedCount = items.filter((i) => i.checked).length;
 
+  // Group items by store section, preserving the server's ordering.
+  const groups = [];
+  for (const item of items) {
+    const cat = item.category || 'Other';
+    let g = groups.find((x) => x.cat === cat);
+    if (!g) { g = { cat, items: [] }; groups.push(g); }
+    g.items.push(item);
+  }
+
+  const Row = (item) => (
+    <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.45rem 0', borderBottom: '1px solid var(--line)' }}>
+      <input type="checkbox" checked={item.checked} onChange={() => toggle(item)} style={{ width: 'auto' }} />
+      <span style={{ flex: 1, textDecoration: item.checked ? 'line-through' : 'none', color: item.checked ? 'var(--cocoa-soft)' : 'inherit' }}>
+        {item.label}
+      </span>
+      <button className="danger" style={{ padding: '0.05rem 0.45rem' }} onClick={() => remove(item)}>×</button>
+    </div>
+  );
+
   return (
     <div>
       <h1>Shopping List</h1>
@@ -53,13 +72,10 @@ export default function ShoppingList() {
         <p className="muted">Your list is empty. Add items above, or use “Add to shopping list” on a recipe.</p>
       ) : (
         <div className="card">
-          {items.map((item) => (
-            <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.45rem 0', borderBottom: '1px solid var(--line)' }}>
-              <input type="checkbox" checked={item.checked} onChange={() => toggle(item)} style={{ width: 'auto' }} />
-              <span style={{ flex: 1, textDecoration: item.checked ? 'line-through' : 'none', color: item.checked ? 'var(--cocoa-soft)' : 'inherit' }}>
-                {item.label}
-              </span>
-              <button className="danger" style={{ padding: '0.05rem 0.45rem' }} onClick={() => remove(item)}>×</button>
+          {groups.map((g) => (
+            <div key={g.cat} style={{ marginBottom: '0.5rem' }}>
+              <h3 style={{ margin: '0.6rem 0 0.2rem', color: 'var(--crust-dark)', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{g.cat}</h3>
+              {g.items.map(Row)}
             </div>
           ))}
           <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>

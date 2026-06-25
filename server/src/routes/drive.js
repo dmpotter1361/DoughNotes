@@ -6,6 +6,7 @@ import db, { UPLOADS_DIR } from '../db.js';
 import { requireAuth } from '../auth.js';
 import { hydrate } from './recipes.js';
 import { buildRecipeBook } from '../pdf.js';
+import { gatherForCookbook } from './cookbook.js';
 import {
   driveConfigured, getAuthUrl, exchangeCode, saveLinkedAccount,
   getLinkedAccount, disconnect, uploadFile,
@@ -142,6 +143,25 @@ router.post('/export/collection/:id', requireAuth, async (req, res) => {
   } catch (e) {
     console.error('PDF export error:', e.message);
     res.status(500).json({ error: 'Failed to export PDF to Drive' });
+  }
+});
+
+// POST /api/drive/export/cookbook { title, scope, seed } — render the user's recipes
+// as one cookbook PDF and save it to their Drive.
+router.post('/export/cookbook', requireAuth, async (req, res) => {
+  if (!getLinkedAccount(req.user.id)) return res.status(400).json({ error: 'Connect Google Drive first' });
+  const title = (req.body?.title || 'My Cookbook').toString().trim().slice(0, 100) || 'My Cookbook';
+  const scope = req.body?.scope === 'published' ? 'published' : 'all';
+  const seed = Number(req.body?.seed) || 1;
+  const recipes = gatherForCookbook(req.user.id, scope);
+  if (recipes.length === 0) return res.status(400).json({ error: 'You have no recipes to put in a cookbook yet.' });
+  try {
+    const pdf = await buildRecipeBook({ title, recipes, seed });
+    const fileId = await uploadFile(req.user.id, { buffer: pdf, mimeType: 'application/pdf', name: `${title}.pdf` });
+    res.json({ link: `https://drive.google.com/file/d/${fileId}/view` });
+  } catch (e) {
+    console.error('Cookbook Drive export error:', e.message);
+    res.status(500).json({ error: 'Failed to export cookbook to Drive' });
   }
 });
 

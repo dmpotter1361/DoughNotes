@@ -160,5 +160,10 @@ function ensureColumn(table, column, definition) {
 }
 ensureColumn('recipes', 'cover_image_id', 'INTEGER');
 ensureColumn('recipe_images', 'step_index', 'INTEGER');
+// Structured shopping items (sum-merge + store-section grouping). Older rows keep just `label`.
+ensureColumn('shopping_items', 'qty', 'REAL');
+ensureColumn('shopping_items', 'unit', 'TEXT');
+ensureColumn('shopping_items', 'name', 'TEXT');
+ensureColumn('shopping_items', 'category', 'TEXT');
 
 export default db;
