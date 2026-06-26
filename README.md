@@ -17,7 +17,11 @@ in a single Docker container.
 - **Private bake log** — a "My Bakes" tab on each recipe to log attempts, dates,
   notes, and how they turned out (only you ever see it)
 - **Photos** — attach images (1 MB each on local storage; connect Google Drive for
-  unlimited storage + recipe-book PDF export — *coming soon*)
+  unlimited storage in your own Drive)
+- **Cookbook export** — bundle your recipes into one PDF with a custom, designed cover
+  (drag-and-drop title/author/images); download it or save it to Google Drive
+- **Shopping list & meal planner** — build a smart, aisle-grouped list (it sums
+  quantities) and plan recipes across the week
 - **Accounts & roles** — email/password login; the first account is the admin and
   manages users (admins manage *accounts*, never your private recipes)
 - **Import from a photo** — snap a handwritten or printed recipe card; on-device
@@ -105,16 +109,20 @@ better results on messy sources — phone screenshots of social posts, etc. — 
 backend. It's optional; if it's off or fails, imports fall back to the heuristic. Pick one:
 
 **A) Gemini (hosted, free) — recommended for small servers (uses ~no RAM):**
+
+How to get the key: sign in at **[Google AI Studio](https://aistudio.google.com/apikey)**
+→ **Create API key** (a free tier is fine) → copy it. Then in `.env`:
 ```bash
-# Get a free key: https://aistudio.google.com/apikey
-# In .env:
-#   GEMINI_API_KEY=your-key
-#   GEMINI_MODEL=gemini-2.5-flash-lite       # text imports
-#   GEMINI_VISION_MODEL=gemini-2.5-flash     # photo imports (reads the image directly)
+GEMINI_API_KEY=your-key
+GEMINI_MODEL=gemini-2.5-flash-lite       # text imports
+GEMINI_VISION_MODEL=gemini-2.5-flash     # photo imports (reads the image directly)
+```
+```bash
 ./start.sh --https --ai     # no extra container needed
 ```
 Recipe text/photos are sent to Google for extraction. Photo imports use the vision model
 to read the image directly (more accurate than OCR→text, and no server RAM needed).
+Keep the key private — it lives only in `.env`, never in git.
 
 **B) Ollama (local, fully private) — needs ~4 GB+ RAM:**
 ```bash
@@ -125,6 +133,42 @@ Runs on CPU (slow; a GPU is faster). A 3B model needs ~2 GB just to load, so it 
 on a 2 GB box — use Gemini there, or a smaller model like `llama3.2:1b` with more RAM.
 
 > Leave both `GEMINI_API_KEY` and `OLLAMA_URL` blank to disable AI (heuristic only).
+
+### Optional: Google Drive (bigger photo storage + cookbook to Drive)
+
+By default photos are stored locally (1 MB each). Connecting Google Drive gives each user
+unlimited photo storage **in their own Drive** and lets them save the cookbook PDF there.
+It's per-user and optional — you (the host) create one OAuth app once, then each user
+clicks **Connect Drive** inside the app.
+
+**One-time setup (host)** at the [Google Cloud Console](https://console.cloud.google.com):
+
+1. **Create a project** (top bar → *New Project*).
+2. **APIs & Services → Library** → search **Google Drive API** → **Enable**.
+3. **APIs & Services → OAuth consent screen** → choose **External** → set an app name +
+   your email → add yourself (and any other users) under **Test users**. Leave it in
+   **Testing** mode: the `drive.file` scope needs no Google verification for up to 100 test
+   users — plenty for family/personal use.
+4. **APIs & Services → Credentials → Create credentials → OAuth client ID → Web
+   application**. Under **Authorized redirect URIs**, add both:
+   - `http://localhost:3500/api/drive/callback` (local testing)
+   - `https://your-domain.com/api/drive/callback` (your live site)
+5. Copy the **Client ID** and **Client secret** into `.env`, and make sure `APP_BASE_URL`
+   matches the redirect URI's host:
+   ```bash
+   GOOGLE_CLIENT_ID=xxxxx.apps.googleusercontent.com
+   GOOGLE_CLIENT_SECRET=xxxxx
+   APP_BASE_URL=https://your-domain.com
+   ```
+   Then recreate the container so it reads the new values:
+   ```bash
+   sudo docker compose --profile https up -d
+   ```
+
+> Drive sign-in requires HTTPS on a real domain (plain `http://` only works on
+> `localhost`). Keep the client secret private — it belongs only in `.env`, never in git.
+> If the secret ever leaks, rotate it: Cloud Console → Credentials → your client → reset
+> secret, then update `.env` and recreate the container.
 
 ### Updating to a new version
 

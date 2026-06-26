@@ -1,6 +1,11 @@
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-insecure-secret-change-me';
+// Require a real secret in production; only fall back to a throwaway in dev.
+const JWT_SECRET = process.env.JWT_SECRET
+  || (process.env.NODE_ENV === 'production' ? null : 'dev-insecure-secret-change-me');
+if (!JWT_SECRET) {
+  throw new Error('JWT_SECRET must be set in production (refusing to start with an insecure default).');
+}
 const COOKIE_NAME = 'dn_token';
 const MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
