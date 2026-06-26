@@ -26,7 +26,9 @@ const app = express();
 const PORT = process.env.PORT || 3500; // 3500 → a nod to 350°F
 
 app.use(cors({ origin: true, credentials: true }));
-app.use(express.json());
+// Raised from the 100 KB default so saved cookbook covers (which embed base64
+// images, capped at ~8 MB by the cover route) fit in the request body.
+app.use(express.json({ limit: '12mb' }));
 app.use(cookieParser());
 app.use(attachUser);
 

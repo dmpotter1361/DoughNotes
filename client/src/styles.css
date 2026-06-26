@@ -216,6 +216,13 @@ th { color: var(--cocoa-soft); font-size: 0.85rem; text-transform: uppercase; le
 
 /* Cookbook cover editor */
 .cookbook-layout { display: flex; gap: 1.5rem; flex-wrap: wrap; align-items: flex-start; }
+/* Keep all control buttons a consistent height (don't let flexbox stretch them
+   to match a taller neighbor) and center their icon + label. */
+.cookbook-layout button, .cookbook-layout .btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.35rem;
+  min-height: 40px; line-height: 1.2; box-sizing: border-box; align-self: center;
+}
+.cookbook-layout .card strong { display: block; margin-bottom: 0.5rem; }
 
 /* Mobile polish */
 @media (max-width: 600px) {
