@@ -58,7 +58,7 @@ export default function Planner() {
   async function generateShopping() {
     setNote('');
     const { added, recipes: n } = await api.post('/planner/shopping', { start: startStr });
-    setNote(`Added ${added} item${added === 1 ? '' : 's'} from ${n} recipe${n === 1 ? '' : 's'} to your shopping list.`);
+    setNote(`Shopping list updated with this week's ${added} item${added === 1 ? '' : 's'} from ${n} recipe${n === 1 ? '' : 's'} (your other list items are untouched).`);
   }
   function shiftWeek(weeks) {
     const d = new Date(start);

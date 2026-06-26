@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import db from '../db.js';
 import { requireAuth } from '../auth.js';
-import { addLabels, ingredientsFromRecipes } from './shopping.js';
+import { addLabels, clearSource, ingredientsFromRecipes } from './shopping.js';
 
 const router = Router();
 
@@ -61,7 +61,11 @@ router.post('/shopping', requireAuth, (req, res) => {
   for (const { recipe_id, n } of counts) {
     for (let i = 0; i < n; i++) expandedIds.push(recipe_id);
   }
-  const added = addLabels(req.user.id, ingredientsFromRecipes(req.user.id, expandedIds));
+  // Replace the previous planner-generated items so regenerating reflects the CURRENT
+  // week instead of stacking on top of earlier generations. Manual / per-recipe items
+  // live in the separate 'list' bucket and are left untouched.
+  clearSource(req.user.id, 'planner');
+  const added = addLabels(req.user.id, ingredientsFromRecipes(req.user.id, expandedIds), 'planner');
   res.json({ added, recipes: counts.length });
 });
 

@@ -142,6 +142,10 @@ function normalizeName(s) {
   return { key, display };
 }
 
+// Lines whose amount is intentionally unspecified — keep these as a single note
+// instead of assuming a count (so we don't render "2 salt to taste").
+const VAGUE = /\b(to taste|as needed|as desired|as required|to serve|for serving|for garnish|for frying|for greasing|for dusting|for brushing|optional|garnish)\b/i;
+
 // Parse one ingredient line into a structured shopping entry.
 // Returns { qty, unit, name, display, category, raw }. qty/unit are null for free text.
 export function parseIngredient(line) {
@@ -151,7 +155,12 @@ export function parseIngredient(line) {
   const q = leadingQuantity(rest);
   if (!q) {
     const { key, display } = normalizeName(rest);
-    return { qty: null, unit: null, name: key, display, category: categoryFor(key), raw };
+    // Vague amounts stay as un-counted free text; an otherwise plain ingredient
+    // (e.g. "garlic") is assumed to be 1 so duplicates accumulate.
+    if (!key || VAGUE.test(rest)) {
+      return { qty: null, unit: null, name: key, display, category: categoryFor(key), raw };
+    }
+    return { qty: 1, unit: '', name: key, display, category: categoryFor(key), raw };
   }
   rest = rest.slice(q.len);
   const u = leadingUnit(rest);

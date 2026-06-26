@@ -165,5 +165,9 @@ ensureColumn('shopping_items', 'qty', 'REAL');
 ensureColumn('shopping_items', 'unit', 'TEXT');
 ensureColumn('shopping_items', 'name', 'TEXT');
 ensureColumn('shopping_items', 'category', 'TEXT');
+// Bucket an item belongs to: 'list' (manual + per-recipe adds, accumulates) or
+// 'planner' (auto-generated from the weekly plan, replaced on each regenerate).
+ensureColumn('shopping_items', 'source', 'TEXT');
+db.exec("UPDATE shopping_items SET source = 'list' WHERE source IS NULL");
 
 export default db;
