@@ -214,6 +214,9 @@ th { color: var(--cocoa-soft); font-size: 0.85rem; text-transform: uppercase; le
 /* "Choose ›" affordance so the tile clearly reads as tappable */
 .import-option .pick { margin-left: auto; color: var(--crust-dark); font-weight: 700; white-space: nowrap; }
 
+/* Cookbook cover editor */
+.cookbook-layout { display: flex; gap: 1.5rem; flex-wrap: wrap; align-items: flex-start; }
+
 /* Mobile polish */
 @media (max-width: 600px) {
   .nav {

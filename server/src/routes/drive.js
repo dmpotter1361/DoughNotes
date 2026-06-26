@@ -6,7 +6,7 @@ import db, { UPLOADS_DIR } from '../db.js';
 import { requireAuth } from '../auth.js';
 import { hydrate } from './recipes.js';
 import { buildRecipeBook } from '../pdf.js';
-import { gatherForCookbook } from './cookbook.js';
+import { gatherForCookbook, getCoverSpec } from './cookbook.js';
 import {
   driveConfigured, getAuthUrl, exchangeCode, saveLinkedAccount,
   getLinkedAccount, disconnect, uploadFile,
@@ -156,7 +156,7 @@ router.post('/export/cookbook', requireAuth, async (req, res) => {
   const recipes = gatherForCookbook(req.user.id, scope);
   if (recipes.length === 0) return res.status(400).json({ error: 'You have no recipes to put in a cookbook yet.' });
   try {
-    const pdf = await buildRecipeBook({ title, recipes, seed });
+    const pdf = await buildRecipeBook({ title, recipes, seed, coverSpec: getCoverSpec(req.user.id) });
     const fileId = await uploadFile(req.user.id, { buffer: pdf, mimeType: 'application/pdf', name: `${title}.pdf` });
     res.json({ link: `https://drive.google.com/file/d/${fileId}/view` });
   } catch (e) {

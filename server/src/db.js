@@ -170,4 +170,13 @@ ensureColumn('shopping_items', 'category', 'TEXT');
 ensureColumn('shopping_items', 'source', 'TEXT');
 db.exec("UPDATE shopping_items SET source = 'list' WHERE source IS NULL");
 
+// One saved cookbook cover design per user (JSON "spec"; see server/src/pdf.js).
+db.exec(`
+  CREATE TABLE IF NOT EXISTS cookbook_covers (
+    user_id    INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    spec       TEXT NOT NULL,
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+`);
+
 export default db;

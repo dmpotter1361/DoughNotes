@@ -13,6 +13,7 @@ import Import from './pages/Import.jsx';
 import CookMode from './pages/CookMode.jsx';
 import ShoppingList from './pages/ShoppingList.jsx';
 import Planner from './pages/Planner.jsx';
+import Cookbook from './pages/Cookbook.jsx';
 
 // Gate a route behind login (optionally admin-only).
 function Protected({ children, adminOnly }) {
@@ -41,6 +42,7 @@ export default function App() {
         <Route path="/account" element={<Protected><Account /></Protected>} />
         <Route path="/shopping" element={<Protected><ShoppingList /></Protected>} />
         <Route path="/planner" element={<Protected><Planner /></Protected>} />
+        <Route path="/cookbook" element={<Protected><Cookbook /></Protected>} />
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
