@@ -38,9 +38,76 @@ function drawCover(doc, { title, subtitle, seed }) {
   doc.restore();
 }
 
+// Map a spec font family + style to one of pdfkit's built-in 14 fonts.
+function pdfFont(family, bold, italic) {
+  if (family === 'sans') {
+    if (bold && italic) return 'Helvetica-BoldOblique';
+    if (bold) return 'Helvetica-Bold';
+    if (italic) return 'Helvetica-Oblique';
+    return 'Helvetica';
+  }
+  if (family === 'mono') {
+    if (bold && italic) return 'Courier-BoldOblique';
+    if (bold) return 'Courier-Bold';
+    if (italic) return 'Courier-Oblique';
+    return 'Courier';
+  }
+  // serif (default)
+  if (bold && italic) return 'Times-BoldItalic';
+  if (bold) return 'Times-Bold';
+  if (italic) return 'Times-Italic';
+  return 'Times-Roman';
+}
+
+const dataUrlToBuffer = (s) => {
+  const i = String(s).indexOf(',');
+  return i === -1 ? null : Buffer.from(s.slice(i + 1), 'base64');
+};
+
+// Draw a cover from a saved editor spec (background + positioned text/image objects).
+// All x/y/w/h are fractions of the page; font sizes are points.
+function drawCoverFromSpec(doc, spec) {
+  const W = doc.page.width;
+  const H = doc.page.height;
+  const bg = spec.background || {};
+  doc.save();
+  // background fill
+  if (bg.color) doc.rect(0, 0, W, H).fill(bg.color);
+  // full-page background photo (cover-fit, centered)
+  if (bg.image) {
+    const buf = dataUrlToBuffer(bg.image);
+    if (buf) { try { doc.image(buf, 0, 0, { cover: [W, H], align: 'center', valign: 'center' }); } catch { /* skip bad image */ } }
+  }
+  // optional decorative frame + seeded confetti
+  if (bg.style === 'frame') {
+    const rng = mulberry32(Math.floor(bg.seed) || 1);
+    doc.lineWidth(3).strokeColor(CRUST).rect(30, 30, W - 60, H - 60).stroke();
+    doc.lineWidth(1).strokeColor(SOFT).rect(40, 40, W - 80, H - 80).stroke();
+    doc.fillColor(CRUST);
+    for (let i = 0; i < 22; i++) {
+      const x = 60 + rng() * (W - 120);
+      const y = rng() < 0.5 ? 70 + rng() * 70 : H - 150 + rng() * 80;
+      doc.circle(x, y, 1.5 + rng() * 3).fill();
+    }
+  }
+  // objects in order
+  for (const o of spec.objects || []) {
+    if (o.type === 'image' && o.data) {
+      const buf = dataUrlToBuffer(o.data);
+      if (buf) { try { doc.image(buf, o.x * W, o.y * H, { width: o.w * W, height: o.h * H }); } catch { /* skip */ } }
+    } else if (o.type === 'text') {
+      doc.fillColor(o.color || COCOA)
+        .font(pdfFont(o.font, o.bold, o.italic))
+        .fontSize(o.size || 24)
+        .text(o.text || '', o.x * W, o.y * H, { width: o.w * W, align: o.align || 'left' });
+    }
+  }
+  doc.restore();
+}
+
 // Render one or more recipes into a recipe-book PDF. Returns a Promise<Buffer>.
-// `subtitle` and `seed` are optional (seed makes the cover art deterministic).
-export function buildRecipeBook({ title, subtitle, recipes, seed }) {
+// `coverSpec` (a saved editor design) wins; else `subtitle`/`seed` drive the default cover.
+export function buildRecipeBook({ title, subtitle, recipes, seed, coverSpec }) {
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ size: 'A4', margin: 56 });
     const chunks = [];
@@ -48,11 +115,15 @@ export function buildRecipeBook({ title, subtitle, recipes, seed }) {
     doc.on('end', () => resolve(Buffer.concat(chunks)));
     doc.on('error', reject);
 
-    drawCover(doc, {
-      title,
-      subtitle: subtitle || `${recipes.length} recipe${recipes.length === 1 ? '' : 's'} · DoughNotes`,
-      seed,
-    });
+    if (coverSpec && Array.isArray(coverSpec.objects)) {
+      drawCoverFromSpec(doc, coverSpec);
+    } else {
+      drawCover(doc, {
+        title,
+        subtitle: subtitle || `${recipes.length} recipe${recipes.length === 1 ? '' : 's'} · DoughNotes`,
+        seed,
+      });
+    }
 
     recipes.forEach((r, i) => {
       doc.addPage();
