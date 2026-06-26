@@ -1,5 +1,7 @@
 # DoughNotes
 
+[![Version](https://img.shields.io/github/package-json/v/dmpotter1361/DoughNotes?color=c8842a&label=version)](https://github.com/dmpotter1361/DoughNotes/blob/main/package.json)
+
 A self-hosted recipe book, tracker, and journal. Save your recipes, keep a private
 bake log, publish your best ones to the community, and run the whole thing yourself
 in a single Docker container.

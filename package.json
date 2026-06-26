@@ -1,0 +1,11 @@
+{
+  "name": "doughnotes",
+  "version": "1.1.0",
+  "private": true,
+  "description": "Self-hosted multi-user recipe book, tracker, and journal.",
+  "license": "GPL-3.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dmpotter1361/DoughNotes.git"
+  }
+}
