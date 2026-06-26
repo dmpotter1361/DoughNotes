@@ -1,5 +1,5 @@
 # Caddy reverse proxy with automatic HTTPS (Let's Encrypt).
-# DOMAIN comes from your .env (e.g. doughnotes.myhomegames.net).
+# DOMAIN comes from your .env (e.g. your-domain.com).
 # Requires ports 80 and 443 to be reachable from the internet.
 
 {$DOMAIN} {

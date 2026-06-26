@@ -79,8 +79,8 @@ If you have a domain pointed at the server, run it behind the built-in **Caddy**
 reverse proxy for automatic HTTPS (Let's Encrypt). In `.env` set:
 
 ```bash
-DOMAIN=doughnotes.myhomegames.net
-APP_BASE_URL=https://doughnotes.myhomegames.net
+DOMAIN=your-domain.com
+APP_BASE_URL=https://your-domain.com
 COOKIE_SECURE=true
 ```
 
